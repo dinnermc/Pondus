@@ -4,14 +4,14 @@ license = "CC0-1.0" # Review your options at https://choosealicense.com/.
 #issueTrackerURL="https://change.me.to.your.issue.tracker.example.invalid/" #optional
 [[mods]] #mandatory
 modId = "pondus" #mandatory
-version = "2" #mandatory
+version = "1.0.0" #mandatory
 displayName = "Pondus" #mandatory
 #updateJSONURL="https://change.me.example.invalid/updates.json" #optional (see https://mcforge.readthedocs.io/en/latest/gettingstarted/autoupdate/)
 #displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional (displayed in the mod UI)
 logoFile = "pondus.png" #optional (needs to be in the root of your mod jar (root of your 'resources' folder))
 credits = "Thanks for this example mod goes to Java" #optional
 authors = "Tfarcenim" #optional
-description = '''The description of your mod. 
+description = '''The description of your mod.
 Accepts multilines.''' #mandatory (Supports multiline text)
 [[mixins]]
 config = "pondus.mixins.json"
