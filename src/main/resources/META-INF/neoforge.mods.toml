@@ -10,8 +10,8 @@ displayName = "Pondus" #mandatory
 #displayURL="https://change.me.to.your.mods.homepage.example.invalid/" #optional (displayed in the mod UI)
 logoFile = "pondus.png" #optional (needs to be in the root of your mod jar (root of your 'resources' folder))
 credits = "Thanks for this example mod goes to Java" #optional
-authors = "Tfarcenim" #optional
-description = '''The description of your mod.
+authors = "Dinner" #optional
+description = '''Adds high performance Custom Gravity to minecraft. Fork of "Gravity Changer Unofficial Port"
 Accepts multilines.''' #mandatory (Supports multiline text)
 [[mixins]]
 config = "pondus.mixins.json"
