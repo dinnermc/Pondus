@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-09-01
+### Documentation Improvements
+
+This update focuses on improving documentation and making it easier for mod developers to use Pondus as a dependency.
+
+### Added
+- Enhanced README.md with comprehensive "Using Pondus as a Dependency" section
+- Clear instructions for Maven/Gradle setup including repository configuration
+- Publishing instructions for maintainers (GitHub Packages, local Maven, etc.)
+- Quick start guide for mod developers
+- Better visibility of dependency coordinates in documentation
+
+### Changed
+- Restructured README.md to put dependency usage more prominently
+- Improved API usage documentation with clearer examples
+- Updated installation instructions to reference dependency usage
+- Made Maven coordinates more visible throughout documentation
+
+### Fixed
+- None
+
+### Dependency Information
+- Group ID: `dinner.dev`
+- Artifact ID: `pondus`
+- Version: `1.0.1`
+- Repository: Available via GitHub Packages at `https://maven.pkg.github.com/dinnermc/Pondus`
+- Can also be installed to local Maven via `./gradlew publishToMavenLocal`
+
+---
 ## [1.0.0] - 2026-08-31
 ### Initial Release as Pondus API Mod
 
