@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Specification-Title: Pondus
+Specification-Vendor: Tfarcenim
+Specification-Version: 2
+Implementation-Title: neoforge
+Implementation-Version: 2
+Implementation-Vendor: Tfarcenim
+Built-On-Minecraft: 1.21.1
+

@@ -1,0 +1,115 @@
+{
+
+
+
+  "item.minecraft.potion.effect.gravity_decr_0": "Potion of Gravity Decrease",
+  "item.minecraft.potion.effect.gravity_decr_1": "Potion of Gravity Decrease",
+  "item.minecraft.potion.effect.gravity_incr_0": "Potion of Gravity Increase",
+  "item.minecraft.potion.effect.gravity_incr_1": "Potion of Gravity Increase",
+  "item.minecraft.potion.effect.gravity_down_0": "Potion of Down Gravity",
+  "item.minecraft.potion.effect.gravity_up_0": "Potion of Up Gravity",
+  "item.minecraft.potion.effect.gravity_north_0": "Potion of North Gravity",
+  "item.minecraft.potion.effect.gravity_south_0": "Potion of South Gravity",
+  "item.minecraft.potion.effect.gravity_west_0": "Potion of West Gravity",
+  "item.minecraft.potion.effect.gravity_east_0": "Potion of East Gravity",
+
+  "item.minecraft.splash_potion.effect.gravity_decr_0": "Splash Potion of Gravity Decrease",
+  "item.minecraft.splash_potion.effect.gravity_decr_1": "Splash Potion of Gravity Decrease",
+  "item.minecraft.splash_potion.effect.gravity_incr_0": "Splash Potion of Gravity Increase",
+  "item.minecraft.splash_potion.effect.gravity_incr_1": "Splash Potion of Gravity Increase",
+  "item.minecraft.splash_potion.effect.gravity_down_0": "Splash Potion of Down Gravity",
+  "item.minecraft.splash_potion.effect.gravity_up_0": "Splash Potion of Up Gravity",
+  "item.minecraft.splash_potion.effect.gravity_north_0": "Splash Potion of North Gravity",
+  "item.minecraft.splash_potion.effect.gravity_south_0": "Splash Potion of South Gravity",
+  "item.minecraft.splash_potion.effect.gravity_west_0": "Splash Potion of West Gravity",
+  "item.minecraft.splash_potion.effect.gravity_east_0": "Splash Potion of East Gravity",
+
+  "item.minecraft.lingering_potion.effect.gravity_decr_0": "Lingering Potion of Gravity Decrease",
+  "item.minecraft.lingering_potion.effect.gravity_decr_1": "Lingering Potion of Gravity Decrease",
+  "item.minecraft.lingering_potion.effect.gravity_incr_0": "Lingering Potion of Gravity Increase",
+  "item.minecraft.lingering_potion.effect.gravity_incr_1": "Lingering Potion of Gravity Increase",
+  "item.minecraft.lingering_potion.effect.gravity_down_0": "Lingering Potion of Down Gravity",
+  "item.minecraft.lingering_potion.effect.gravity_up_0": "Lingering Potion of Up Gravity",
+  "item.minecraft.lingering_potion.effect.gravity_north_0": "Lingering Potion of North Gravity",
+  "item.minecraft.lingering_potion.effect.gravity_south_0": "Lingering Potion of South Gravity",
+  "item.minecraft.lingering_potion.effect.gravity_west_0": "Lingering Potion of West Gravity",
+  "item.minecraft.lingering_potion.effect.gravity_east_0": "Lingering Potion of East Gravity",
+
+  
+  "pondus.gravity_anchor.tooltip.0": "Changes gravity when held",
+  "pondus.gravity_anchor.tooltip.1": "Overrides base gravity and gravity effects",
+
+  "effect.pondus.strength_increase": "Gravity Increase",
+  "effect.pondus.strength_decrease": "Gravity Decrease",
+  "effect.pondus.down": "Down Gravity",
+  "effect.pondus.up": "Up Gravity",
+  "effect.pondus.north": "North Gravity",
+  "effect.pondus.south": "South Gravity",
+  "effect.pondus.west": "West Gravity",
+  "effect.pondus.east": "East Gravity",
+  "effect.pondus.invert": "Invert Gravity",
+
+
+
+  "itemGroup.pondus.general": "Gravity Changer",
+
+  "pondus.preview": "You are using the preview version of gravity changer. Report issues: ",
+
+  "direction.down": "Down",
+  "direction.up": "Up",
+  "direction.north": "North",
+  "direction.south": "South",
+  "direction.west": "West",
+  "direction.east": "East",
+
+  "pondus.command.inform": "Base Gravity Direction: %s, Base Gravity Strength: %s",
+  "pondus.command.dimension_info": "Dimension Gravity Strength: %s",
+
+  "commands.gravity.get.self": "Your gravity is %s",
+  "commands.gravity.get.other": "%s's gravity is %s",
+  "commands.gravity.set.self": "Set own gravity to %s",
+  "commands.gravity.set.other": "Set %s's gravity to %s",
+
+  "pondus.plate.wrong_interaction": "Interact with this using amethyst or bare hand",
+  "pondus.plate.status": "Side: %s  Range: %s  Force: %s ",
+  "pondus.plate.force.attract": "Attract",
+  "pondus.plate.force.repulse": "Repulse",
+
+  "text.autoconfig.pondus.title": "GravityChanger Config",
+
+  "text.autoconfig.pondus.option.client.@PrefixText": "Client",
+  "text.autoconfig.pondus.option.keepWorldLook": "Keep World Look",
+  "text.autoconfig.pondus.option.keepWorldLook.@Tooltip[0]": "Makes it so that you keep your world relative",
+  "text.autoconfig.pondus.option.keepWorldLook.@Tooltip[1]": "look direction when changing gravity",
+
+  "text.autoconfig.pondus.option.rotationTime": "Camera Rotation Time",
+  "text.autoconfig.pondus.option.rotationTime.@Tooltip[0]": "The time it takes for the camera to rotate",
+  "text.autoconfig.pondus.option.rotationTime.@Tooltip[1]": "from one direction to the next",
+
+  "text.autoconfig.pondus.option.server.@PrefixText": "Server",
+  "text.autoconfig.pondus.option.worldVelocity": "World Relative Velocity Transfer",
+  "text.autoconfig.pondus.option.worldVelocity.@Tooltip[0]": "Makes it so when gravity changes velocity is world relative",
+  "text.autoconfig.pondus.option.worldVelocity.@Tooltip[1]": "lets you keep moving the same direction when gravity changes",
+
+  "text.autoconfig.pondus.option.resetGravityOnDimensionChange": "Reset Gravity On Dimension Change",
+  "text.autoconfig.pondus.option.resetGravityOnDimensionChange.@Tooltip[0]": "Makes it so that your gravity is reset",
+  "text.autoconfig.pondus.option.resetGravityOnDimensionChange.@Tooltip[1]": "to Your Gravity Default every time you change dimension",
+
+  "text.autoconfig.pondus.option.resetGravityOnRespawn": "Reset Gravity On Respawn",
+  "text.autoconfig.pondus.option.resetGravityOnRespawn.@Tooltip[0]": "Makes it so that your gravity is reset",
+  "text.autoconfig.pondus.option.resetGravityOnRespawn.@Tooltip[1]": "to Your Gravity Default every time you respawn",
+  "text.autoconfig.pondus.option.voidDamageAboveWorld": "Void Damage Above World for Upwards Gravity",
+  "text.autoconfig.pondus.option.voidDamageAboveWorld.@Tooltip[0]": "Makes it so that you start taking void damage",
+  "text.autoconfig.pondus.option.voidDamageAboveWorld.@Tooltip[1]": "if you are above y = max_world_height + 256 and the gravity direction is up",
+
+  "text.autoconfig.pondus.option.worldDefaultGravityStrength": "World Default Gravity Strength",
+
+  "text.autoconfig.pondus.option.voidDamageOnHorizontalFallTooFar": "Void Damage On Falling Far for Horizontal Gravity",
+  "text.autoconfig.pondus.option.voidDamageOnHorizontalFallTooFar.@Tooltip[0]": "When the gravity is horizontal and falling for at least 1024 blocks,",
+  "text.autoconfig.pondus.option.voidDamageOnHorizontalFallTooFar.@Tooltip[1]": "the entity will start taking void damage",
+
+  "text.autoconfig.pondus.option.autoJumpOnGravityPlateInnerCorner": "Auto Jump On Gravity Plate Inner Corner",
+
+  "text.autoconfig.pondus.option.adjustPositionAfterChangingGravity": "Adjust Position After Changing Gravity"
+
+}
