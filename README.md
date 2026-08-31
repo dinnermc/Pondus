@@ -92,92 +92,33 @@ Pondus is designed as a library that other mods can depend on. It's available vi
 #### 1. Add the Repository
 Depending on where you want to host/publish Pondus:
 
-**Option A: GitHub Packages (Recommended for open source)**
+**Recommended Repository Setup**
 ```gradle
 repositories {
     maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/dinnermc/Pondus")
-        credentials {
-            username = findProperty("gpr.user") ?: System.getenv("GPR_USER")
-            password = findProperty("gpr.key") ?: System.getenv("GPR_KEY")
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup("maven.modrinth")
         }
     }
     mavenLocal() // For local testing
 }
 ```
 
-**Option B: Local Maven Repository** (for testing without publishing)
-```gradle
-repositories {
-    mavenLocal()
-}
+#### 2. Set the Version (in gradle.properties)
+```properties
+pondus_version=1.0.1
 ```
 
-**Option C: Sonatype/Maven Central** (if you publish there)
-```gradle
-repositories {
-    mavenCentral()
-}
-```
-
-#### 2. Add the Dependency
+#### 3. Add the Dependency
 ```gradle
 dependencies {
-    modImplementation "dinner.dev:pondus:1.0.0"
+    implementation("maven.modrinth:pondus:${project.pondus_version}")
 }
 ```
 
-#### 3. Add to your mods.toml
-```toml
-[[dependencies.pondus]]
-    modId = "pondus"
-    versionRange = "[1.0.0,)"
-    ordering = "NONE"
-    side = "BOTH"
-```
 
-### **Dependency Setup Details**
 
-In your `build.gradle`:
-```gradle
-dependencies {
-    // Replace with actual version or use Maven
-    modImplementation "dinner.dev:pondus:1.0.0"
-}
-```
-
-In your `mods.toml`:
-```toml
-[[dependencies.pondus]]
-    modId="pondus"
-    versionRange="[1.0.0,)"
-    ordering="NONE"
-    side="BOTH"
-```
-
-### **Publishing Instructions (for maintainers)**
-
-To make Pondus available for others to use as a dependency:
-
-**Publish to Local Maven (for testing):**
-```bash
-./gradlew publishToMavenLocal
-```
-
-**Publish to GitHub Packages:**
-1. Set up GitHub credentials in `gradle.properties` (not committed):
-   ```properties
-   gpr.user=your-github-username
-   gpr.key=your-personal-access-token
-   ```
-2. Run:
-   ```bash
-   ./gradlew publish
-   ```
-
-**Publish to Sonatype/Maven Central:**
-Configure the `publishing` section in `build.gradle` with your repository details and run `./gradlew publish`.
 
 ### **Core API Classes**
 
@@ -290,9 +231,8 @@ Pondus uses AutoConfig for mod configuration. Settings can be adjusted in-game v
 
 ### **For Mod Developers**
 1. Add Pondus as a dependency in your mod's build.gradle (see [Using Pondus as a Dependency](#using-pondus-as-a-dependency))
-2. Add the dependency to your mods.toml
-3. Use the PondusAPI in your mod code as shown above
-4. Your mod will now be able to manipulate gravity for entities and dimensions
+2. Use the PondusAPI in your mod code as shown above
+3. Your mod will now be able to manipulate gravity for entities and dimensions
 
 ---
 
