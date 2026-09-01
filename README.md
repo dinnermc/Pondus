@@ -53,6 +53,30 @@ public static void onGravityChange(dinner.dev.pondus.api.GravityUpdateEvent even
 }
 ```
 
+## Installation Guide
+
+add the Modrinth maven repository to your `build.gradle`:
+```gradle
+repositories {
+    maven {
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup("maven.modrinth")
+        }
+    }
+}
+```
+Add Pondus to the dependencies section of `build.gradle`:
+```gradle
+dependencies {
+    implementation("maven.modrinth:pondus:${project.pondus_version}")
+}
+```
+Last, set the Pondus version you want in `gradle.properties`:
+```properties
+pondus_version=1.0.1
+```
+
 ## Requirements
 - Minecraft 1.21.1
 - NeoForge 21.1+
