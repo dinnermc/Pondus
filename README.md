@@ -9,7 +9,7 @@ A lightweight NeoForge API and utility mod that provides full 3D gravity manipul
 - [Features](#features)
 - [Lineage & Credits](#lineage--credits)
 - [Commands](#commands)
-- [API Usage for Mod Developers](#api-usage-for-mod-developers)
+- [Using Pondus as a Dependency](#using-pondus-as-a-dependency)
 - [Configuration](#configuration)
 - [Installation](#installation)
 - [License](#license)
@@ -83,11 +83,61 @@ Displays the global gravity settings for the current dimension.
 
 ---
 
-## API Usage for Mod Developers
+## Using Pondus as a Dependency
 
-Pondus is designed as a library that other mods can depend on. Add it to your mod's dependencies and use the API to manipulate gravity.
+Pondus is designed as a library that other mods can depend on. It's available via Maven-compatible repositories.
 
-### **Dependency Setup**
+### **Quick Start for Mod Developers**
+
+#### 1. Add the Repository
+Depending on where you want to host/publish Pondus:
+
+**Option A: GitHub Packages (Recommended for open source)**
+```gradle
+repositories {
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/dinnermc/Pondus")
+        credentials {
+            username = findProperty("gpr.user") ?: System.getenv("GPR_USER")
+            password = findProperty("gpr.key") ?: System.getenv("GPR_KEY")
+        }
+    }
+    mavenLocal() // For local testing
+}
+```
+
+**Option B: Local Maven Repository** (for testing without publishing)
+```gradle
+repositories {
+    mavenLocal()
+}
+```
+
+**Option C: Sonatype/Maven Central** (if you publish there)
+```gradle
+repositories {
+    mavenCentral()
+}
+```
+
+#### 2. Add the Dependency
+```gradle
+dependencies {
+    modImplementation "dinner.dev:pondus:1.0.0"
+}
+```
+
+#### 3. Add to your mods.toml
+```toml
+[[dependencies.pondus]]
+    modId = "pondus"
+    versionRange = "[1.0.0,)"
+    ordering = "NONE"
+    side = "BOTH"
+```
+
+### **Dependency Setup Details**
 
 In your `build.gradle`:
 ```gradle
@@ -105,6 +155,29 @@ In your `mods.toml`:
     ordering="NONE"
     side="BOTH"
 ```
+
+### **Publishing Instructions (for maintainers)**
+
+To make Pondus available for others to use as a dependency:
+
+**Publish to Local Maven (for testing):**
+```bash
+./gradlew publishToMavenLocal
+```
+
+**Publish to GitHub Packages:**
+1. Set up GitHub credentials in `gradle.properties` (not committed):
+   ```properties
+   gpr.user=your-github-username
+   gpr.key=your-personal-access-token
+   ```
+2. Run:
+   ```bash
+   ./gradlew publish
+   ```
+
+**Publish to Sonatype/Maven Central:**
+Configure the `publishing` section in `build.gradle` with your repository details and run `./gradlew publish`.
 
 ### **Core API Classes**
 
@@ -216,7 +289,7 @@ Pondus uses AutoConfig for mod configuration. Settings can be adjusted in-game v
 5. Configure via the mod menu or edit `config/pondus.json`
 
 ### **For Mod Developers**
-1. Add Pondus as a dependency in your mod's build.gradle
+1. Add Pondus as a dependency in your mod's build.gradle (see [Using Pondus as a Dependency](#using-pondus-as-a-dependency))
 2. Add the dependency to your mods.toml
 3. Use the PondusAPI in your mod code as shown above
 4. Your mod will now be able to manipulate gravity for entities and dimensions
@@ -274,7 +347,7 @@ The GitHub wiki feature is available for extended documentation:
 - [AutoConfig](https://github.com/shedaniel/AutoConfig) - Configuration system
 - [JetBrains IntelliJ IDEA](https://www.jetbrains.com/idea/) - Development IDE
 - [Git](https://git-scm.com/) - Version control
-- [Gradle](https://gradle.org/) - Build automation
+- [Gradle](https.gradle.org/) - Build automation
 
 ---
 
