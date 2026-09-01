@@ -9,7 +9,7 @@
     </a>
     <img src="https://img.shields.io/badge/Minecraft-1.21.1-brightgreen?logo=minecraft" alt="Minecraft Version" />
     <img src="https://img.shields.io/badge/Loader-NeoForge-orange" alt="NeoForge" />
-    <img src="https://img.shields.io/badge/License-CC%20BY-NC-SA%204.0-blue.svg" alt="License" />
+    <img src="https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-blue" alt="License"/>
   </p>
 
   <p>Custom gravity API for Minecraft, fork of Gravity Control.</p>
