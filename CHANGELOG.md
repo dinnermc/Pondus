@@ -27,8 +27,7 @@ This update focuses on improving documentation and making it easier for mod deve
 - Group ID: `dinner.dev`
 - Artifact ID: `pondus`
 - Version: `1.0.1`
-- Repository: Available via GitHub Packages at `https://maven.pkg.github.com/dinnermc/Pondus`
-- Can also be installed to local Maven via `./gradlew publishToMavenLocal`
+- Repository: Available via Modrinth at `https://api.modrinth.com/maven` (recommended)
 
 ---
 ## [1.0.0] - 2026-08-31
