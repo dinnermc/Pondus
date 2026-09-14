@@ -54,6 +54,8 @@ public class ZoneManager {
                 IEntityGravityData data = PondusAPI.getGravityData(entity);
                 if (data != null) {
                     data.applyGravityDirectionEffect(zone.getDirection(), null, zone.getStrength());
+                    data.applyGravityChange();
+                    data.updateGravityStatus(true);
                 }
             }
         }
