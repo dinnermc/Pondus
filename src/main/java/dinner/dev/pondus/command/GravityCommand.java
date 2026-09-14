@@ -231,6 +231,11 @@ public class GravityCommand {
                                                         }
                                                         double strength = DoubleArgumentType.getDouble(ctx, "strength");
                                                         if (strength <= 0) strength = 1.0;
+                                                        Zone existing = ZoneManager.getInstance().getZone(id);
+                                                        if (existing != null) {
+                                                            ctx.getSource().sendFailure(Component.literal("A zone with ID " + id + " already exists."));
+                                                            return 0;
+                                                        }
                                                         Zone zone = new Zone(id, pos1, pos2, dir, strength);
                                                         ZoneManager.getInstance().addZone(zone);
                                                         ctx.getSource().sendSuccess(() -> Component.literal("Zone created: " + id), true);
@@ -250,6 +255,11 @@ public class GravityCommand {
                 .then(Commands.argument("id", StringArgumentType.word())
                     .executes(ctx -> {
                         String id = StringArgumentType.getString(ctx, "id");
+                        Zone zone = ZoneManager.getInstance().getZone(id);
+                        if (zone == null) {
+                            ctx.getSource().sendFailure(Component.literal("No zone with ID " + id + " found."));
+                            return 0;
+                        }
                         ZoneManager.getInstance().removeZone(id);
                         ctx.getSource().sendSuccess(() -> Component.literal("Zone removed: " + id), true);
                         return 1;
