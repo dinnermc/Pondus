@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Collection;
@@ -263,7 +264,18 @@ public class GravityCommand {
                     } else {
                         StringBuilder sb = new StringBuilder("Zones: ");
                         for (Map.Entry<String, Zone> e : zones.entrySet()) {
-                            sb.append(e.getKey()).append(" ");
+                            Zone zone = e.getValue();
+                            sb.append("[")
+                              .append(zone.getId())
+                              .append("] ")
+                              .append(zone.getPos1())
+                              .append(" to ")
+                              .append(zone.getPos2())
+                              .append(" dir=")
+                              .append(zone.getDirection())
+                              .append(" strength=")
+                              .append(zone.getStrength())
+                              .append(" ");
                         }
                         ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), true);
                     }
