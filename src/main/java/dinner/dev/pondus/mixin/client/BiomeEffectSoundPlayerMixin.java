@@ -1,6 +1,6 @@
 package dinner.dev.pondus.mixin.client;
 
-import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.player.LocalPlayerEntity;
 import net.minecraft.client.resources.sounds.BiomeAmbientSoundsHandler;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,7 +21,7 @@ public abstract class BiomeEffectSoundPlayerMixin {
             target = "Lnet/minecraft/client/player/LocalPlayer;getEyeY()D"
         )
     )
-    private double redirect_method_26271_getEyeY_0(LocalPlayer clientPlayerEntity) {
+    private double redirect_method_26271_getEyeY_0(LocalPlayerEntity clientPlayerEntity) {
         return clientPlayerEntity.getEyePosition().y;
     }
 
@@ -32,7 +32,7 @@ public abstract class BiomeEffectSoundPlayerMixin {
             target = "Lnet/minecraft/client/player/LocalPlayer;getX()D"
         )
     )
-    private double redirect_method_26271_getX_0(LocalPlayer clientPlayerEntity) {
+    private double redirect_method_26271_getX_0(LocalPlayerEntity clientPlayerEntity) {
         return clientPlayerEntity.getEyePosition().x;
     }
 
@@ -43,7 +43,7 @@ public abstract class BiomeEffectSoundPlayerMixin {
             target = "Lnet/minecraft/client/player/LocalPlayer;getZ()D"
         )
     )
-    private double redirect_method_26271_getZ_0(LocalPlayer clientPlayerEntity) {
+    private double redirect_method_26271_getZ_0(LocalPlayerEntity clientPlayerEntity) {
         return clientPlayerEntity.getEyePosition().z;
     }
 }

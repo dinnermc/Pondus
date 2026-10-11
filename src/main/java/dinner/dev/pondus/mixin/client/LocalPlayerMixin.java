@@ -4,7 +4,7 @@ import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.player.LocalPlayerEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.phys.AABB;
@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(LocalPlayer.class)
+@Mixin(LocalPlayerEntity.class)
 public abstract class LocalPlayerMixin extends AbstractClientPlayer {
     public LocalPlayerMixin(ClientLevel world, GameProfile profile) {
         super(world, profile);

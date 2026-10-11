@@ -13,6 +13,7 @@ repositories {
     mavenCentral()
     maven { url = "https://maven.shedaniel.me" }
     maven { url = "https://maven.fabricmc.net" }
+    maven { url = "https://libraries.minecraft.net" }
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
@@ -23,7 +24,7 @@ loom {
 dependencies {
     // Minecraft
     minecraft "com.mojang:minecraft:${minecraft_version}"
-    mappings "net.fabricmc:yarn:${yarn_mappings_version}:v2"
+    mappings "com.mojang:mappings:${minecraft_version}:zip"
     
     // Fabric API
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"

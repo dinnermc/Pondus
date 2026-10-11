@@ -18,7 +18,7 @@ public abstract class PiglinMixin implements CrossbowAttackMob {
         method = "performRangedAttack",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/monster/piglin/Piglin;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            target = "Lnet/minecraft/world/entity/monster/piglin/PiglinEntity;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
             ordinal = 0
         )
     )

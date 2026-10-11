@@ -20,7 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerEntity;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Collection;

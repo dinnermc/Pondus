@@ -15,8 +15,8 @@ import net.minecraft.client.renderer.entity.FishingHookRenderer;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.HumanoidArm;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.FishingHook;
+import net.minecraft.world.entity.player.PlayerEntity;
+import net.minecraft.world.entity.projectile.FishingHookEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
@@ -30,7 +30,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(FishingHookRenderer.class)
-public abstract class FishingBobberEntityRendererMixin extends EntityRenderer<FishingHook> {
+public abstract class FishingBobberEntityRendererMixin extends EntityRenderer<FishingHookEntity> {
     @Shadow
     @Final
     private static RenderType RENDER_TYPE;
@@ -54,8 +54,8 @@ public abstract class FishingBobberEntityRendererMixin extends EntityRenderer<Fi
         at = @At("HEAD"),
         cancellable = true
     )
-    public void inject_render(FishingHook fishingBobberEntity, float yaw, float tickDelta, PoseStack matrixStack, MultiBufferSource vertexConsumerProvider, int light, CallbackInfo ci) {
-        Player playerEntity = fishingBobberEntity.getPlayerOwner();
+    public void inject_render(FishingHookEntity fishingBobberEntity, float yaw, float tickDelta, PoseStack matrixStack, MultiBufferSource vertexConsumerProvider, int light, CallbackInfo ci) {
+        PlayerEntity playerEntity = fishingBobberEntity.getPlayerOwner();
         if (playerEntity == null) return;
         
         Direction gravityDirection = PondusAPI.getGravityDirection(playerEntity);

@@ -1,9 +1,9 @@
 package dinner.dev.pondus.mixin.client;
 
-import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.player.RemotePlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(RemotePlayer.class)
+@Mixin(RemotePlayerEntity.class)
 public abstract class OtherClientPlayerEntityMixin {
     // @Override
     // public Direction gravitychanger$getGravityDirection() {

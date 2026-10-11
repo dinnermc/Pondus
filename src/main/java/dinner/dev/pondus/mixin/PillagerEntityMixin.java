@@ -21,11 +21,11 @@ public abstract class PillagerEntityMixin implements CrossbowAttackMob {
         method = "performRangedAttack",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/monster/Pillager;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            target = "Lnet/minecraft/world/entity/monster/PillagerEntity;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
             ordinal = 0
         )
     )
-    private void redirect_shoot_shoot_0(Pillager pillagerEntity,LivingEntity target, float speed) {
+    private void redirect_shoot_shoot_0(PillagerEntity pillagerEntity,LivingEntity target, float speed) {
         Direction gravityDirection = PondusAPI.getGravityDirection(target);
         if (gravityDirection == Direction.DOWN) {
             pillagerEntity.performCrossbowAttack(target, speed);

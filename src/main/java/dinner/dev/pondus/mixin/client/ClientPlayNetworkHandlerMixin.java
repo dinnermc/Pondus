@@ -4,7 +4,7 @@ import dinner.dev.pondus.api.PondusAPI;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.core.Direction;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerEntity;
 import net.minecraft.world.phys.Vec3;
 import dinner.dev.pondus.util.RotationUtil;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -27,7 +27,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
             ordinal = 0
         )
     )
-    private double redirect_onGameStateChange_getEyeY_0(Player playerEntity) {
+    private double redirect_onGameStateChange_getEyeY_0(PlayerEntity playerEntity) {
         Direction gravityDirection = PondusAPI.getGravityDirection(playerEntity);
         if (gravityDirection == Direction.DOWN) {
             return playerEntity.getEyeY();
@@ -44,7 +44,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
             ordinal = 0
         )
     )
-    private double redirect_onGameStateChange_getX_0(Player playerEntity) {
+    private double redirect_onGameStateChange_getX_0(PlayerEntity playerEntity) {
         Direction gravityDirection = PondusAPI.getGravityDirection(playerEntity);
         if (gravityDirection == Direction.DOWN) {
             return playerEntity.getX();
@@ -61,7 +61,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
             ordinal = 0
         )
     )
-    private double redirect_onGameStateChange_getZ_0(Player playerEntity) {
+    private double redirect_onGameStateChange_getZ_0(PlayerEntity playerEntity) {
         Direction gravityDirection = PondusAPI.getGravityDirection(playerEntity);
         if (gravityDirection == Direction.DOWN) {
             return playerEntity.getZ();

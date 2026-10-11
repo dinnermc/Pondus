@@ -1,7 +1,7 @@
 package dinner.dev.pondus.util;
 
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.player.LocalPlayerEntity;
+import net.minecraft.client.player.RemotePlayerEntity;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.network.chat.ClickEvent;
@@ -37,14 +37,14 @@ public class GCUtil {
     
     public static boolean isClientPlayer(Entity entity) {
         if (entity.level().isClientSide()) {
-            return entity instanceof LocalPlayer;
+            return entity instanceof LocalPlayerEntity;
         }
         return false;
     }
     
     public static boolean isRemotePlayer(Entity entity) {
         if (entity.level().isClientSide()) {
-            return entity instanceof RemotePlayer;
+            return entity instanceof RemotePlayerEntity;
         }
         return false;
     }

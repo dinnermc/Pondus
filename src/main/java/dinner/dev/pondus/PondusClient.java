@@ -9,7 +9,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.FastColor;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.player.PlayerEntity;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.state.BlockState;
@@ -59,7 +59,7 @@ public class PondusClient {
         }
     }
 
-    public static void inject_getInWallBlockState(Player player, CallbackInfoReturnable<BlockState> cir) {
+    public static void inject_getInWallBlockState(PlayerEntity player, CallbackInfoReturnable<BlockState> cir) {
         Direction gravityDirection = PondusAPI.getGravityDirection(player);
         if (gravityDirection == Direction.DOWN) return;
 
