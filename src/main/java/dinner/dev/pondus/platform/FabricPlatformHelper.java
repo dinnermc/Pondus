@@ -1,101 +1,95 @@
 package dinner.dev.pondus.platform;
 
-import dinner.dev.pondus.api.GravityUpdateEvent;
 import dinner.dev.pondus.attachments.CommonDataAttachment;
 import dinner.dev.pondus.network.C2SModPacket;
-import dinner.dev.pondus.network.PacketHandlerNeoForge;
+import dinner.dev.pondus.network.PacketHandlerFabric;
 import dinner.dev.pondus.network.S2CModPacket;
-import dinner.dev.pondus.platform.services.IPlatformHelper;
 import dinner.dev.pondus.util.EntityGravityData;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-
-import net.neoforged.api.distmarker.Dist;
-import net.neoforged.fml.ModList;
-import net.neoforged.fml.loading.FMLEnvironment;
-import net.neoforged.fml.loading.FMLLoader;
-import net.neoforged.neoforge.attachment.AttachmentType;
-import net.neoforged.neoforge.attachment.IAttachmentHolder;
-import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.registries.NeoForgeRegistries;
+import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Function;
 
-public class NeoForgePlatformHelper implements IPlatformHelper {
+public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public String getPlatformName() {
-
-        return "Forge";
+        return "Fabric";
     }
 
     @Override
     public boolean isModLoaded(String modId) {
-
-        return ModList.get().isLoaded(modId);
+        return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded(modId);
     }
 
     @Override
     public boolean isDevelopmentEnvironment() {
-
-        return !FMLLoader.isProduction();
+        return net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment();
     }
 
     @Override
     public boolean isClient() {
-        return FMLEnvironment.dist == Dist.CLIENT;
+        return net.fabricmc.api.EnvType.CLIENT == net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType();
     }
 
     @Override
     public <MSG extends S2CModPacket> void registerClientPlayPacket(CustomPacketPayload.Type<MSG> type, StreamCodec<RegistryFriendlyByteBuf, MSG> streamCodec) {
-        PacketHandlerNeoForge.registrar.playToClient(type, streamCodec, (p, t) -> p.handleClient());
+        ServerPlayNetworking.registerGlobalReceiver(type, (packet, context) -> {
+            packet.handleClient();
+        });
     }
 
     @Override
     public <MSG extends C2SModPacket> void registerServerPlayPacket(CustomPacketPayload.Type<MSG> type, StreamCodec<RegistryFriendlyByteBuf, MSG> streamCodec) {
-        PacketHandlerNeoForge.registrar.playToServer(type, streamCodec, (p, t) -> p.handleServer((ServerPlayer) t.player()));
+        // For client-to-server packets, we register on the client side
+        // This is typically done in the client entry point
     }
-
 
     @Override
     public void sendToClient(S2CModPacket msg, ServerPlayer player) {
-        PacketHandlerNeoForge.sendToClient(msg, player);
+        ServerPlayNetworking.send(player, msg);
     }
 
     @Override
     public void sendToServer(C2SModPacket msg) {
-        PacketHandlerNeoForge.sendToServer(msg);
+        // Client side only - send to server
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(msg);
     }
 
     @Override
     public void sendToTracking(S2CModPacket msg, Entity entity, boolean includeSelf) {
-        if (includeSelf) {
-            PacketDistributor.sendToPlayersTrackingEntityAndSelf(entity,msg);
-        } else {
-            PacketDistributor.sendToPlayersTrackingEntity(entity,msg);
+        if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            PlayerLookup.tracking(entity, includeSelf).forEach(player -> {
+                ServerPlayNetworking.send(player, msg);
+            });
         }
     }
 
     @Override
     public <T> void registerDataAttachment(CommonDataAttachment<T> attachment) {
-        AttachmentType.Builder<T> builder = AttachmentType.builder((Function<IAttachmentHolder, T>) (Object) attachment.getDefaultValueSupplier());
+        AttachmentType.Builder<T> builder = AttachmentType.builder(attachment.getDefaultValueSupplier());
         if (attachment.getCodec() != null) {
-            builder.serialize(attachment.getCodec());
-        }
-        if (attachment.isCopyOnDeath()) {
-            builder.copyOnDeath();
+            builder.copyOnDeath(attachment.isCopyOnDeath());
+            builder.save(attachment.getCodec());
         }
         if (attachment.canSync()) {
-            builder.sync(attachment.getStreamCodec());
+            builder.syncWith(attachment.getStreamCodec());
         }
+        
         AttachmentType<T> type = builder.build();
-        Registry.register(NeoForgeRegistries.ATTACHMENT_TYPES, attachment.getName(), type);
+        Registry.register(BuiltInRegistries.ATTACHMENT_TYPE, attachment.getName(), type);
         attachment.setAttachment(type);
     }
 
@@ -104,8 +98,8 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     @Nullable
     public <T> T getAttachedValue(Object object, CommonDataAttachment<T> attachment) {
         AttachmentType<T> type = (AttachmentType<T>) attachment.getAttachment();
-        if (object instanceof IAttachmentHolder attachmentHolder) {
-            return attachmentHolder.getData(type);
+        if (object instanceof AttachmentTarget attachmentTarget) {
+            return attachmentTarget.getData(type);
         } else {
             throw new IllegalStateException("Cannot attach data to " + object);
         }
@@ -115,11 +109,11 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
     @Override
     public <T> void setAttachedValue(Object object, CommonDataAttachment<T> attachment, @Nullable T value) {
         AttachmentType<T> type = (AttachmentType<T>) attachment.getAttachment();
-        if (object instanceof IAttachmentHolder attachmentHolder) {
+        if (object instanceof AttachmentTarget attachmentTarget) {
             if (value == null) {
-                attachmentHolder.removeData(type);
+                attachmentTarget.removeData(type);
             } else {
-                attachmentHolder.setData(type, value);
+                attachmentTarget.setData(type, value);
             }
         } else {
             throw new IllegalStateException("Cannot attach data to " + object);
@@ -128,6 +122,6 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
 
     @Override
     public void postEvent(Entity entity, EntityGravityData entityGravityData) {
-        NeoForge.EVENT_BUS.post(new GravityUpdateEvent(entity, entityGravityData));
+        CommonEvents.handleGravity(entity, entityGravityData);
     }
 }

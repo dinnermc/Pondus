@@ -1,14 +1,18 @@
 package dinner.dev.pondus.api;
 
 import net.minecraft.world.entity.Entity;
-import net.neoforged.neoforge.event.entity.EntityEvent;
 
-public class GravityUpdateEvent extends EntityEvent {
+public class GravityUpdateEvent {
+    private final Entity entity;
     private final IEntityGravityData gravityData;
 
     public GravityUpdateEvent(Entity entity, IEntityGravityData gravityData) {
-        super(entity);
+        this.entity = entity;
         this.gravityData = gravityData;
+    }
+
+    public Entity getEntity() {
+        return entity;
     }
 
     public IEntityGravityData getGravity() {

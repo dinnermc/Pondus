@@ -5,15 +5,14 @@
   "refmap": "pondus.refmap.json",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "CommonHooksMixin",
-    "EntityMixinNeoForge"
+    "EntityMixinFabric",
+    "LivingEntityBreatheMixinFabric"
   ],
   "client": [
-    "client.CameraMixinNeoForge",
-    "client.ScreenEffectRendererNeoForgeMixin"
+    "client.CameraMixinFabric",
+    "client.ScreenEffectRendererFabricMixin"
   ],
-  "server": [
-  ],
+  "server": [],
   "injectors": {
     "defaultRequire": 1
   }

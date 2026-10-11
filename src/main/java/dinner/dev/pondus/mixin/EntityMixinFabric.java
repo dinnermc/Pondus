@@ -10,8 +10,8 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Entity.class)
-public abstract class EntityMixinNeoForge {
-    @Inject(method = "tick",at = @At("RETURN"))
+public abstract class EntityMixinFabric {
+    @Inject(method = "tick", at = @At("RETURN"))
     private void tickEntity(CallbackInfo ci) {
         PondusAPI.getGravityData((Entity) (Object)this).commonTick();
     }

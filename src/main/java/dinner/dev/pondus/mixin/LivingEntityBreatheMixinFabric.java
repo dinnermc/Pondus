@@ -4,22 +4,21 @@ import dinner.dev.pondus.api.PondusAPI;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
-import net.neoforged.neoforge.common.CommonHooks;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(CommonHooks.class)
-public class CommonHooksMixin {
+@Mixin(LivingEntity.class)
+public class LivingEntityBreatheMixinFabric {
     @Redirect(
-            method = "onLivingBreathe",
+            method = "breathe",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/core/BlockPos;containing(DDD)Lnet/minecraft/core/BlockPos;",
                     ordinal = 0
             )
     )
-    private static BlockPos redirect_baseTick_new_0(double x, double y, double z, LivingEntity entity) {
+    private static BlockPos redirect_breathe_blockPos(double x, double y, double z, LivingEntity entity) {
         Direction gravityDirection = PondusAPI.getGravityDirection(entity);
         if (gravityDirection == Direction.DOWN) {
             return BlockPos.containing(x, y, z);

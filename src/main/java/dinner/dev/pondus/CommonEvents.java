@@ -5,6 +5,7 @@ import dinner.dev.pondus.mob_effect.GravityDirectionMobEffect;
 import dinner.dev.pondus.mob_effect.GravityInvertMobEffect;
 import dinner.dev.pondus.mob_effect.refined.GravityStrengthMobEffect;
 import dinner.dev.pondus.zone.ZoneManager;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.Holder;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -12,8 +13,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.neoforged.neoforge.event.tick.LevelTickEvent;
-import net.neoforged.bus.api.SubscribeEvent;
 import net.minecraft.world.level.Level;
 
 public class CommonEvents {
@@ -25,7 +24,7 @@ public class CommonEvents {
             GravityStrengthMobEffect.DECREASE.value().apply(livingEntity,gravity,GravityStrengthMobEffect.DECREASE);
             GravityStrengthMobEffect.REVERSE.value().apply(livingEntity,gravity,GravityStrengthMobEffect.REVERSE);
         }
-////////////////////////////////////////////////////////////////////DIRECTION
+//////////////////////////////////////////////////////////////////DIRECTION
         if (entity instanceof LivingEntity livingEntity) {
             for (Holder<MobEffect> dirEffect : GravityDirectionMobEffect.EFFECT_MAP.values()) {
                 MobEffectInstance effectInstance = livingEntity.getEffect(dirEffect);
@@ -49,8 +48,11 @@ public class CommonEvents {
         }
     }
 
-    @SubscribeEvent
-    public static void onLevelTick(LevelTickEvent.Post event) {
-        ZoneManager.getInstance().tick(event.getLevel());
+    public static void initFabric() {
+        ServerTickEvents.END_LEVEL_TICK.register(CommonEvents::onLevelTick);
+    }
+
+    public static void onLevelTick(Level level) {
+        ZoneManager.getInstance().tick(level);
     }
 }

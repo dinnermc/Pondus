@@ -14,8 +14,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(Camera.class)//caused by forge patch
-public class CameraMixinNeoForge {
+@Mixin(Camera.class)
+public class CameraMixinFabric {
     @Shadow
     private Entity entity;
 
