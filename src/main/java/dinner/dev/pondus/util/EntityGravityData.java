@@ -16,8 +16,8 @@ import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.entity.player.PlayerEntity;
+import net.minecraft.world.entity.projectile.AbstractArrowEntity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -335,7 +335,7 @@ public class EntityGravityData implements IEntityGravityData {
             return;
         }
 
-        if (entity instanceof AreaEffectCloud || entity instanceof AbstractArrow || entity instanceof EndCrystal) {
+        if (entity instanceof AreaEffectCloud || entity instanceof AbstractArrowEntity || entity instanceof EndCrystal) {
             return;
         }
 
@@ -364,7 +364,7 @@ public class EntityGravityData implements IEntityGravityData {
             Vec3 positionAdjustmentOffset = getPositionAdjustmentOffset(
                 entityBoundingBox, totalCollisionBox, movingDirection
             );
-            if (entity instanceof Player) {
+            if (entity instanceof PlayerEntity) {
                 LOGGER.info("Adjusting player position {} {}", positionAdjustmentOffset, entity);
             }
             entity.setPos(entity.position().add(positionAdjustmentOffset));

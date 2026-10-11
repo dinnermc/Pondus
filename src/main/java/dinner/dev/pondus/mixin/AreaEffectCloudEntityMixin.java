@@ -6,7 +6,7 @@ import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.util.Mth;
-import net.minecraft.world.entity.AreaEffectCloud;
+import net.minecraft.world.entity.AreaEffectCloudEntity;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.Map;
 
-@Mixin(AreaEffectCloud.class)
+@Mixin(AreaEffectCloudEntity.class)
 public abstract class AreaEffectCloudEntityMixin extends Entity {
     
     

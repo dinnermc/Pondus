@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(
-    targets = "net.minecraft.world.entity.monster.EnderMan$EndermanFreezeWhenLookedAt"
+    targets = "net.minecraft.world.entity.monster.EndermanEntity$EndermanFreezeWhenLookedAt"
 )
 public abstract class EndermanEntity_ChasePlayerGoalMixin {
     @Redirect(

@@ -4,13 +4,13 @@ package dinner.dev.pondus.mixin;
 import dinner.dev.pondus.api.PondusAPI;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.monster.EndermanEntity;
 import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(EnderMan.class)
+@Mixin(EndermanEntity.class)
 public abstract class EndermanEntityMixin {
     @Redirect(
         method = "isLookingAtMe(Lnet/minecraft/world/entity/player/Player;)Z",

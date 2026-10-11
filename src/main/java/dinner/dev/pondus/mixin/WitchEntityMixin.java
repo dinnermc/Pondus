@@ -5,14 +5,14 @@ import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.Witch;
+import net.minecraft.world.entity.monster.WitchEntity;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(Witch.class)
+@Mixin(WitchEntity.class)
 public abstract class WitchEntityMixin {
     @ModifyVariable(
         method = "performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",

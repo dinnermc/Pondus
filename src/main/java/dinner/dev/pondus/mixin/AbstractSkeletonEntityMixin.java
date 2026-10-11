@@ -4,12 +4,12 @@ import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.monster.AbstractSkeleton;
+import net.minecraft.world.entity.monster.AbstractSkeletonEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(AbstractSkeleton.class)
+@Mixin(AbstractSkeletonEntity.class)
 public abstract class AbstractSkeletonEntityMixin {
     @Redirect(
         method = "performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
