@@ -289,12 +289,10 @@ public class GravityCommand {
                                   .append(" ");
                             }
                             ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), true);
-                        }
+}
                         return 0;
                     })
                 )
-            );
-
         // Modifier subcommands
         builder.then(Commands.literal("modifier")
             .then(Commands.literal("add")
