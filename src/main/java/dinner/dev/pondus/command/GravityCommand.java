@@ -1,5 +1,6 @@
 package dinner.dev.pondus.command;
 
+import dinner.dev.pondus.api.GravityModifier;
 import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.api.IEntityGravityData;
 import dinner.dev.pondus.util.GCUtil;
@@ -26,6 +27,7 @@ import org.apache.commons.lang3.Validate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class GravityCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -294,6 +296,49 @@ public class GravityCommand {
             )
         );
 
+        builder.then(Commands.literal("modifier")
+            .then(Commands.literal("add")
+                .then(Commands.argument("source", StringArgumentType.word())
+                    .then(Commands.argument("direction", StringArgumentType.word())
+                        .then(Commands.argument("strength", DoubleArgumentType.doubleArg(0.1, 100))
+                            .executes(ctx -> executeAddModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                            .then(Commands.argument("entities", EntityArgument.entities())
+                                .executes(ctx -> executeAddModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                            )
+                            .then(Commands.argument("priority", IntegerArgumentType.integer())
+                                .executes(ctx -> executeAddModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                                .then(Commands.argument("entities", EntityArgument.entities())
+                                    .executes(ctx -> executeAddModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+            .then(Commands.literal("remove")
+                .then(Commands.argument("modifierId", StringArgumentType.word())
+                    .executes(ctx -> executeRemoveModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                    .then(Commands.argument("entities", EntityArgument.entities())
+                        .executes(ctx -> executeRemoveModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                    )
+                )
+                .then(Commands.literal("source")
+                    .then(Commands.argument("sourceId", StringArgumentType.word())
+                        .executes(ctx -> executeRemoveModifiersBySource(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                        .then(Commands.argument("entities", EntityArgument.entities())
+                            .executes(ctx -> executeRemoveModifiersBySource(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                        )
+                    )
+                )
+            )
+            .then(Commands.literal("list")
+                .executes(ctx -> executeListModifiers(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                .then(Commands.argument("entities", EntityArgument.entities())
+                    .executes(ctx -> executeListModifiers(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                )
+            )
+        );
+
         dispatcher.register(builder);
     }
 
@@ -354,9 +399,112 @@ public class GravityCommand {
             Direction newGravityDirection = RotationUtil.dirPlayerToWorld(combinedRelativeDirection, gravityDirection);
             PondusAPI.setBaseGravityDirection(entity, newGravityDirection);
 
-            getSendFeedback(source, entity, newGravityDirection);
+getSendFeedback(source, entity, newGravityDirection);
             i++;
         }
         return i;
+    }
+
+    private static int executeAddModifier(CommandSourceStack source, Collection<? extends Entity> entities) {
+        String sourceId = StringArgumentType.getString(source, "source");
+        String dirStr = StringArgumentType.getString(source, "direction").toUpperCase();
+        double strength = DoubleArgumentType.getDouble(source, "strength");
+        int priority = source.getArgument("priority", Integer.class, 0);
+
+        Direction direction;
+        switch (dirStr) {
+            case "DOWN": direction = Direction.DOWN; break;
+            case "UP": direction = Direction.UP; break;
+            case "NORTH": direction = Direction.NORTH; break;
+            case "SOUTH": direction = Direction.SOUTH; break;
+            case "EAST": direction = Direction.EAST; break;
+            case "WEST": direction = Direction.WEST; break;
+            default:
+                throw new IllegalArgumentException("Invalid direction: " + dirStr);
+        }
+
+        int count = 0;
+        for (Entity entity : entities) {
+            UUID modId = UUID.randomUUID();
+            GravityModifier modifier = new GravityModifier(
+                UUID.randomUUID(),
+                sourceId,
+                direction,
+                strength,
+                priority,
+                null
+            );
+            PondusAPI.addModifier(entity, modifier);
+            count++;
+        }
+
+        source.sendSuccess(() -> Component.translatable(
+            "commands.gravity.modifier.added", sourceId, direction.getName(), strength, priority
+        ), true);
+
+        return count;
+    }
+
+    private static int executeRemoveModifier(CommandSourceStack source, Collection<? extends Entity> entities) {
+        String idStr = StringArgumentType.getString(source, "modifierId");
+        UUID modId;
+        try {
+            modId = UUID.fromString(idStr);
+        } catch (IllegalArgumentException e) {
+            source.sendFailure(Component.literal("Invalid UUID: " + idStr));
+            return 0;
+        }
+
+        int count = 0;
+        for (Entity entity : entities) {
+            PondusAPI.removeModifier(entity, modId);
+            count++;
+        }
+
+        source.sendSuccess(() -> Component.translatable(
+            "commands.gravity.modifier.removed", idStr
+        ), true);
+
+        return count;
+    }
+
+    private static int executeRemoveModifiersBySource(CommandSourceStack source, Collection<? extends Entity> entities) {
+        String sourceId = StringArgumentType.getString(source, "sourceId");
+
+        int count = 0;
+        for (Entity entity : entities) {
+            PondusAPI.removeModifiersBySource(entity, sourceId);
+            count++;
+        }
+
+        source.sendSuccess(() -> Component.translatable(
+            "commands.gravity.modifier.removed_source", sourceId
+        ), true);
+
+        return count;
+    }
+
+    private static int executeListModifiers(CommandSourceStack source, Collection<? extends Entity> entities) {
+        for (Entity entity : entities) {
+            List<GravityModifier> modifiers = PondusAPI.getModifiers(entity);
+            if (modifiers.isEmpty()) {
+                source.sendSuccess(() -> Component.translatable(
+                    "commands.gravity.modifier.none", entity.getDisplayName()
+                ), false);
+            } else {
+                StringBuilder sb = new StringBuilder("Modifiers for ").append(entity.getDisplayName()).append(":\n");
+                for (GravityModifier m : modifiers) {
+                    sb.append("  [")
+                      .append(m.id().toString().substring(0, 8))
+                      .append("] source=").append(m.sourceId())
+                      .append(" dir=").append(m.direction().getName())
+                      .append(" strength=").append(m.strengthMultiplier())
+                      .append(" priority=").append(m.priority())
+                      .append("\n");
+                }
+                source.sendSuccess(() -> Component.literal(sb.toString()), false);
+            }
+        }
+        return entities.size();
     }
 }

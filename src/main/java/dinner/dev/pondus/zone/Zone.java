@@ -6,11 +6,14 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 
+import java.util.UUID;
+
 /**
  * Simple axis-aligned bounding box zone with a gravity direction and strength.
  */
 public class Zone {
     private final String id;
+    private final UUID modifierId;
     private final BlockPos pos1;
     private final BlockPos pos2;
     private final net.minecraft.core.Direction direction;
@@ -19,6 +22,7 @@ public class Zone {
 
     public Zone(String id, BlockPos pos1, BlockPos pos2, net.minecraft.core.Direction direction, double strength) {
         this.id = id;
+        this.modifierId = UUID.nameUUIDFromBytes(("zone:" + id).getBytes());
         this.pos1 = pos1;
         this.pos2 = pos2;
         this.direction = direction;
@@ -27,6 +31,10 @@ public class Zone {
 
     public String getId() {
         return id;
+    }
+
+    public UUID getModifierId() {
+        return modifierId;
     }
 
     public BlockPos getPos1() {
