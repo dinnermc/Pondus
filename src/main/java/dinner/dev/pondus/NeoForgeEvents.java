@@ -1,12 +1,16 @@
 package dinner.dev.pondus;
 
 import dinner.dev.pondus.zone.ZoneManager;
-import net.neoforged.neoforge.event.level.LevelEvent;
-import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.tick.LevelTickEvent;
 
 public class NeoForgeEvents {
-    @SubscribeEvent
-    public static void onLevelTick(LevelEvent.Tick event) {
+
+    public static void init() {
+        NeoForge.EVENT_BUS.addListener(NeoForgeEvents::onLevelTick);
+    }
+
+    private static void onLevelTick(LevelTickEvent.Post event) {
         if (!event.getLevel().isClientSide()) {
             ZoneManager.getInstance().tick(event.getLevel());
         }

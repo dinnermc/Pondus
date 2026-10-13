@@ -1,6 +1,7 @@
 package dinner.dev.pondus.util;
 
 import com.mojang.logging.LogUtils;
+import dinner.dev.pondus.CommonEvents;
 import dinner.dev.pondus.EntityTags;
 import dinner.dev.pondus.Pondus;
 import dinner.dev.pondus.RotationAnimation;
@@ -19,8 +20,8 @@ import net.minecraft.world.entity.AreaEffectCloud;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
-import net.minecraft.world.entity.player.PlayerEntity;
-import net.minecraft.world.entity.projectile.AbstractArrowEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -56,10 +57,14 @@ public class EntityGravityData implements IEntityGravityData {
     protected double prevGravityStrength = 1.0;
     protected Direction currGravityDirection = Direction.DOWN;
     protected double currGravityStrength = 1.0;
+    // the base gravity direction
+    protected Direction baseGravityDirection = Direction.DOWN;
+    // the base gravity strength
+    protected double baseGravityStrength = 1.0;
     @Nullable
     protected RotationParameters currentRotationParameters = RotationParameters.getDefault();
 
-    // Modifier stack
+    // Modifier stack (effects are re-derived each tick, zones/commands/vehicles persist)
     protected final List<GravityModifier> modifiers = new ArrayList<>();
 
     public EntityGravityData(Entity entity) {
@@ -76,24 +81,26 @@ public class EntityGravityData implements IEntityGravityData {
 
     @Override
     public void addModifier(GravityModifier modifier) {
-        // Remove any existing modifier with the same ID
+        // Replace any existing modifier with the same ID.
         modifiers.removeIf(m -> m.id().equals(modifier.id()));
         modifiers.add(modifier);
+        modifiers.sort(Comparator.comparingInt(GravityModifier::priority).reversed());
+        recomputeGravity();
         needsSync = true;
     }
 
     @Override
     public void removeModifier(UUID modifierId) {
-        boolean removed = modifiers.removeIf(m -> m.id().equals(modifierId));
-        if (removed) {
+        if (modifiers.removeIf(m -> m.id().equals(modifierId))) {
+            recomputeGravity();
             needsSync = true;
         }
     }
 
     @Override
     public void removeModifiersBySource(String sourceId) {
-        boolean removed = modifiers.removeIf(m -> m.sourceId().equals(sourceId));
-        if (removed) {
+        if (modifiers.removeIf(m -> m.sourceId().equals(sourceId))) {
+            recomputeGravity();
             needsSync = true;
         }
     }
@@ -110,68 +117,43 @@ public class EntityGravityData implements IEntityGravityData {
             @Nullable RotationParameters rotationParameters,
             double priority
     ) {
-        // Legacy compatibility: create a temporary modifier with a generated ID
-        UUID tempId = UUID.randomUUID();
-        GravityModifier modifier = new GravityModifier(
-            tempId,
-            "legacy",
-            direction,
-            1.0,
-            (int) priority,
-            rotationParameters
+        // Legacy compatibility: model the effect as a modifier with a stable ID.
+        String sourceId = "legacy_direction";
+        UUID id = UUID.nameUUIDFromBytes(
+            (sourceId + ":" + direction.getName() + ":" + (int) priority).getBytes()
         );
-        addModifier(modifier);
+        addModifier(new GravityModifier(
+            id, sourceId, direction, 1.0, (int) priority, rotationParameters
+        ));
     }
 
     @Override
     @Deprecated
     public void applyGravityStrengthEffect(double strengthMultiplier) {
-        // Legacy: apply as a strength modifier with a temporary ID
-        UUID tempId = UUID.randomUUID();
-        GravityModifier modifier = new GravityModifier(
-            tempId,
-            "legacy_strength",
-            currGravityDirection,
-            strengthMultiplier,
-            0,
-            null
-        );
-        addModifier(modifier);
+        // Legacy compatibility: model the strength change as a modifier.
+        String sourceId = "legacy_strength";
+        UUID id = UUID.nameUUIDFromBytes(sourceId.getBytes());
+        addModifier(new GravityModifier(
+            id, sourceId, currGravityDirection, strengthMultiplier, 0, null
+        ));
     }
 
     // ==================== Gravity Computation ====================
 
     protected void recomputeGravity() {
-        Direction oldDir = currGravityDirection;
-        double oldStrength = currGravityStrength;
-
-        // Compute direction from modifier stack
+        // Direction: highest priority modifier wins, else the base direction.
         Optional<Direction> dirOpt = GravityModifier.computeDirection(modifiers);
-        if (dirOpt.isPresent()) {
-            currGravityDirection = dirOpt.get();
-        } else {
-            currGravityDirection = baseGravityDirection;
-        }
+        currGravityDirection = dirOpt.orElse(baseGravityDirection);
 
-        // Compute strength from modifier stack
+        // Strength: all multipliers stack multiplicatively on top of the base.
         double modifierStrength = GravityModifier.computeStrength(modifiers);
         currGravityStrength = baseGravityStrength * modifierStrength;
         currGravityStrength *= PondusAPI.getDimensionGravityStrength(entity.level());
         currGravityStrength *= Pondus.config.gravityStrengthMultiplier;
 
-        // Compute rotation parameters
+        // Rotation parameters: highest priority modifier that supplies them.
         Optional<RotationParameters> rotOpt = GravityModifier.computeRotationParameters(modifiers);
-        if (rotOpt.isPresent()) {
-            currentRotationParameters = rotOpt.get();
-        } else if (currentEffectPriority == Double.MIN_VALUE) {
-            currentRotationParameters = RotationParameters.getDefault();
-        }
-
-        // Check if changed
-        boolean changed = oldDir != currGravityDirection || Math.abs(oldStrength - currGravityStrength) > 0.0001;
-        if (changed) {
-            needsSync = true;
-        }
+        currentRotationParameters = rotOpt.orElseGet(RotationParameters::getDefault);
     }
 
     // ==================== Base Gravity (Commands) ====================
@@ -188,6 +170,7 @@ public class EntityGravityData implements IEntityGravityData {
         }
 
         baseGravityStrength = strength;
+        recomputeGravity();
         needsSync = true;
     }
 
@@ -221,6 +204,7 @@ public class EntityGravityData implements IEntityGravityData {
         }
 
         baseGravityDirection = gravityDirection;
+        recomputeGravity();
         needsSync = true;
     }
 
@@ -228,11 +212,21 @@ public class EntityGravityData implements IEntityGravityData {
     public void reset() {
         baseGravityDirection = Direction.DOWN;
         baseGravityStrength = 1.0;
-        removeModifiersBySource("command");
+        modifiers.clear();
+        recomputeGravity();
         needsSync = true;
     }
 
-    // ==================== Tick & Sync ====================
+    /**
+     * Not needed in normal cases.
+     * Only used in {@link PondusAPI#instantlySetClientBaseGravityDirection(Entity, Direction)}
+     * Used by ImmPtl.
+     */
+    @Override
+    public void forceApplyGravityChange() {
+        prevGravityDirection = currGravityDirection;
+        prevGravityStrength = currGravityStrength;
+    }
 
     @Override
     public void commonTick() {
@@ -395,7 +389,7 @@ public class EntityGravityData implements IEntityGravityData {
             return;
         }
 
-        if (entity instanceof AreaEffectCloud || entity instanceof AbstractArrowEntity || entity instanceof EndCrystal) {
+        if (entity instanceof AreaEffectCloud || entity instanceof AbstractArrow || entity instanceof EndCrystal) {
             return;
         }
 
@@ -424,7 +418,7 @@ public class EntityGravityData implements IEntityGravityData {
             Vec3 positionAdjustmentOffset = getPositionAdjustmentOffset(
                 entityBoundingBox, totalCollisionBox, movingDirection
             );
-            if (entity instanceof PlayerEntity) {
+            if (entity instanceof Player) {
                 LOGGER.info("Adjusting player position {} {}", positionAdjustmentOffset, entity);
             }
             entity.setPos(entity.position().add(positionAdjustmentOffset));
@@ -465,32 +459,27 @@ public class EntityGravityData implements IEntityGravityData {
             return;
         }
 
-        // Recompute gravity from modifier stack
-        recomputeGravity();
+        Direction oldGravityDirection = currGravityDirection;
+        double oldGravityStrength = currGravityStrength;
 
         Entity vehicle = entity.getVehicle();
         if (vehicle != null) {
-            // Vehicle gravity takes precedence - add as modifier
-            Direction vehicleDir = PondusAPI.getGravityDirection(vehicle);
-            double vehicleStrength = PondusAPI.getGravityStrength(vehicle);
-            UUID vehicleId = UUID.nameUUIDFromBytes(("vehicle:" + vehicle.getUUID()).getBytes());
-            GravityModifier vehicleModifier = new GravityModifier(
-                vehicleId,
-                "vehicle",
-                vehicleDir,
-                vehicleStrength,
-                GravityModifier.VEHICLE_PRIORITY,
-                RotationParameters.getDefault()
-            );
-            addModifier(vehicleModifier);
+            // Vehicle gravity fully overrides the rider's gravity.
+            currGravityDirection = PondusAPI.getGravityDirection(vehicle);
+            currGravityStrength = PondusAPI.getGravityStrength(vehicle);
+        }
+        else {
+            // Effects contribute transient modifiers; rebuild and recompute the stack.
+            CommonEvents.handleGravity(entity, this);
             recomputeGravity();
         }
 
         lastUpdateTickCount = entity.tickCount;
 
         if (sendPacketIfNecessary) {
-            boolean changed = false; // recomputeGravity already sets needsSync
-            if (needsSync) {
+            boolean changed = oldGravityDirection != currGravityDirection ||
+                    Math.abs(oldGravityStrength - currGravityStrength) > 0.0001;
+            if (changed) {
                 sendSyncPacketToOtherPlayers();
             }
         }
@@ -519,9 +508,8 @@ public class EntityGravityData implements IEntityGravityData {
             for (Tag t : list) {
                 modifiers.add(GravityModifier.fromTag((CompoundTag) t));
             }
+            modifiers.sort(Comparator.comparingInt(GravityModifier::priority).reversed());
         }
-        // Sort by priority descending
-        modifiers.sort(Comparator.comparingInt(GravityModifier::priority).reversed());
 
         // the current gravity is serialized to avoid unnecessary gravity rotation when entering world
         // do not deserialize it when for client player when not initializing
@@ -561,107 +549,6 @@ public class EntityGravityData implements IEntityGravityData {
 
         // Save modifiers
         tag.put("modifiers", GravityModifier.toListTag(modifiers));
-    }
-
-    protected boolean shouldAcceptServerSync() {
-        return entity.level().isClientSide() && !GCUtil.isClientPlayer(entity);
-    }
-
-    protected void sendSyncPacketToOtherPlayers() {
-        if (entity.level().isClientSide()) return;
-        CompoundTag tag = new CompoundTag();
-        toNbt(tag);
-        Services.PLATFORM.sendToTracking(new S2CEntityGravityPacket(entity,tag),entity,false);
-    }
-
-    protected void postEvent() {
-        Services.PLATFORM.postEvent(entity,this);
-    }
-
-    // ==================== Legacy Compatibility ====================
-
-    @Override
-    public double getBaseGravityStrength() {
-        return baseGravityStrength;
-    }
-
-    @Override
-    public void setBaseGravityStrength(double strength) {
-        if (!canChangeGravity()) {
-            return;
-        }
-
-        baseGravityStrength = strength;
-        needsSync = true;
-    }
-
-    @Override
-    public Direction getBaseGravityDirection() {
-        return baseGravityDirection;
-    }
-
-    @Override
-    public void setBaseGravityDirection(Direction gravityDirection) {
-        if (!canChangeGravity()) {
-            return;
-        }
-
-        baseGravityDirection = gravityDirection;
-        needsSync = true;
-    }
-
-    @Override
-    public void forceApplyGravityChange() {
-        prevGravityDirection = currGravityDirection;
-        prevGravityStrength = currGravityStrength;
-    }
-
-    @Override
-    public void applyGravityStrengthEffect(double strengthMultiplier) {
-        // Legacy compatibility
-        applyGravityStrengthEffect(strengthMultiplier);
-    }
-
-    @Override
-    public void applyGravityChange() {
-        if (currentRotationParameters == null) {
-            currentRotationParameters = RotationParameters.getDefault();
-        }
-
-        if (prevGravityDirection != currGravityDirection) {
-            applyGravityDirectionChange(
-                prevGravityDirection, currGravityDirection,
-                currentRotationParameters, false
-            );
-            prevGravityDirection = currGravityDirection;
-        }
-
-        if (Math.abs(currGravityStrength - prevGravityStrength) > 0.0001) {
-            prevGravityStrength = currGravityStrength;
-        }
-    }
-
-    @Override
-    public void commonTick() {
-        if (!canChangeGravity()) {
-            return;
-        }
-
-        updateGravityStatus(true);
-
-        applyGravityChange();
-
-        if (!entity.level().isClientSide()) {
-            if (needsSync) {
-                needsSync = false;
-                syncEntity();
-            }
-        }
-    }
-
-    @Override
-    public RotationAnimation getRotationAnimation() {
-        return animation;
     }
 
     protected boolean shouldAcceptServerSync() {

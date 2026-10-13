@@ -8,6 +8,7 @@ import dinner.dev.pondus.util.RotationUtil;
 import dinner.dev.pondus.zone.Zone;
 import dinner.dev.pondus.zone.ZoneManager;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -252,61 +253,64 @@ public class GravityCommand {
                         )
                     )
                 )
-                .then(Commands.literal("remove")
-                    .then(Commands.argument("id", StringArgumentType.word())
-                        .executes(ctx -> {
-                            String id = StringArgumentType.getString(ctx, "id");
-                            Zone zone = ZoneManager.getInstance().getZone(id);
-                            if (zone == null) {
-                                ctx.getSource().sendFailure(Component.literal("No zone with ID " + id + " found."));
-                                return 0;
-                            }
-                            ZoneManager.getInstance().removeZone(id);
-                            ctx.getSource().sendSuccess(() -> Component.literal("Zone removed: " + id), true);
-                            return 1;
-                        })
-                    )
-                )
-                .then(Commands.literal("list")
+            )
+            .then(Commands.literal("remove")
+                .then(Commands.argument("id", StringArgumentType.word())
                     .executes(ctx -> {
-                        Map<String, Zone> zones = ZoneManager.getInstance().getZones();
-                        if (zones.isEmpty()) {
-                            ctx.getSource().sendSuccess(() -> Component.literal("No zones defined."), true);
-                        } else {
-                            StringBuilder sb = new StringBuilder("Zones: ");
-                            for (Map.Entry<String, Zone> e : zones.entrySet()) {
-                                Zone zone = e.getValue();
-                                sb.append("[")
-                                  .append(zone.getId())
-                                  .append("] ")
-                                  .append(zone.getPos1())
-                                  .append(" to ")
-                                  .append(zone.getPos2())
-                                  .append(" dir=")
-                                  .append(zone.getDirection())
-                                  .append(" strength=")
-                                  .append(zone.getStrength())
-                                  .append(" ");
-                            }
-                            ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), true);
-}
-                        return 0;
+                        String id = StringArgumentType.getString(ctx, "id");
+                        Zone zone = ZoneManager.getInstance().getZone(id);
+                        if (zone == null) {
+                            ctx.getSource().sendFailure(Component.literal("No zone with ID " + id + " found."));
+                            return 0;
+                        }
+                        ZoneManager.getInstance().removeZone(id);
+                        ctx.getSource().sendSuccess(() -> Component.literal("Zone removed: " + id), true);
+                        return 1;
                     })
                 )
+            )
+            .then(Commands.literal("list")
+                .executes(ctx -> {
+                    Map<String, Zone> zones = ZoneManager.getInstance().getZones();
+                    if (zones.isEmpty()) {
+                        ctx.getSource().sendSuccess(() -> Component.literal("No zones defined."), true);
+                    } else {
+                        StringBuilder sb = new StringBuilder("Zones: ");
+                        for (Map.Entry<String, Zone> e : zones.entrySet()) {
+                            Zone zone = e.getValue();
+                            sb.append("[")
+                              .append(zone.getId())
+                              .append("] ")
+                              .append(zone.getPos1())
+                              .append(" to ")
+                              .append(zone.getPos2())
+                              .append(" dir=")
+                              .append(zone.getDirection())
+                              .append(" strength=")
+                              .append(zone.getStrength())
+                              .append(" ");
+                        }
+                        ctx.getSource().sendSuccess(() -> Component.literal(sb.toString()), true);
+                    }
+                    return 0;
+                })
+            )
+        );
+
         // Modifier subcommands
         builder.then(Commands.literal("modifier")
             .then(Commands.literal("add")
                 .then(Commands.argument("source", StringArgumentType.word())
                     .then(Commands.argument("direction", StringArgumentType.word())
                         .then(Commands.argument("strength", DoubleArgumentType.doubleArg(0.1, 100))
-                            .executes(ctx -> executeAddModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                            .executes(ctx -> executeAddModifier(ctx, List.of(ctx.getSource().getEntityOrException())))
                             .then(Commands.argument("entities", EntityArgument.entities())
-                                .executes(ctx -> executeAddModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                                .executes(ctx -> executeAddModifier(ctx, EntityArgument.getEntities(ctx, "entities")))
                             )
                             .then(Commands.argument("priority", IntegerArgumentType.integer())
-                                .executes(ctx -> executeAddModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                                .executes(ctx -> executeAddModifier(ctx, List.of(ctx.getSource().getEntityOrException())))
                                 .then(Commands.argument("entities", EntityArgument.entities())
-                                    .executes(ctx -> executeAddModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                                    .executes(ctx -> executeAddModifier(ctx, EntityArgument.getEntities(ctx, "entities")))
                                 )
                             )
                         )
@@ -315,16 +319,16 @@ public class GravityCommand {
             )
             .then(Commands.literal("remove")
                 .then(Commands.argument("modifierId", StringArgumentType.word())
-                    .executes(ctx -> executeRemoveModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                    .executes(ctx -> executeRemoveModifier(ctx, List.of(ctx.getSource().getEntityOrException())))
                     .then(Commands.argument("entities", EntityArgument.entities())
-                        .executes(ctx -> executeRemoveModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                        .executes(ctx -> executeRemoveModifier(ctx, EntityArgument.getEntities(ctx, "entities")))
                     )
                 )
                 .then(Commands.literal("source")
                     .then(Commands.argument("sourceId", StringArgumentType.word())
-                        .executes(ctx -> executeRemoveModifiersBySource(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                        .executes(ctx -> executeRemoveModifiersBySource(ctx, List.of(ctx.getSource().getEntityOrException())))
                         .then(Commands.argument("entities", EntityArgument.entities())
-                            .executes(ctx -> executeRemoveModifiersBySource(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                            .executes(ctx -> executeRemoveModifiersBySource(ctx, EntityArgument.getEntities(ctx, "entities")))
                         )
                     )
                 )
@@ -403,11 +407,17 @@ public class GravityCommand {
         return i;
     }
 
-    private static int executeAddModifier(CommandSourceStack source, Collection<? extends Entity> entities) {
-        String sourceId = StringArgumentType.getString(source, "source");
-        String dirStr = StringArgumentType.getString(source, "direction").toUpperCase();
-        double strength = DoubleArgumentType.getDouble(source, "strength");
-        int priority = source.getArgument("priority", Integer.class, 0);
+    private static int executeAddModifier(CommandContext<CommandSourceStack> ctx, Collection<? extends Entity> entities) {
+        CommandSourceStack source = ctx.getSource();
+        String sourceId = StringArgumentType.getString(ctx, "source");
+        String dirStr = StringArgumentType.getString(ctx, "direction").toUpperCase();
+        double strength = DoubleArgumentType.getDouble(ctx, "strength");
+        int priorityArg = 0;
+        try {
+            priorityArg = ctx.getArgument("priority", Integer.class);
+        } catch (IllegalArgumentException ignored) {
+        }
+        final int priority = priorityArg;
 
         Direction direction;
         switch (dirStr) {
@@ -443,8 +453,9 @@ public class GravityCommand {
         return count;
     }
 
-    private static int executeRemoveModifier(CommandSourceStack source, Collection<? extends Entity> entities) {
-        String idStr = StringArgumentType.getString(source, "modifierId");
+    private static int executeRemoveModifier(CommandContext<CommandSourceStack> ctx, Collection<? extends Entity> entities) {
+        CommandSourceStack source = ctx.getSource();
+        String idStr = StringArgumentType.getString(ctx, "modifierId");
         UUID modId;
         try {
             modId = UUID.fromString(idStr);
@@ -466,8 +477,9 @@ public class GravityCommand {
         return count;
     }
 
-    private static int executeRemoveModifiersBySource(CommandSourceStack source, Collection<? extends Entity> entities) {
-        String sourceId = StringArgumentType.getString(source, "sourceId");
+    private static int executeRemoveModifiersBySource(CommandContext<CommandSourceStack> ctx, Collection<? extends Entity> entities) {
+        CommandSourceStack source = ctx.getSource();
+        String sourceId = StringArgumentType.getString(ctx, "sourceId");
 
         int count = 0;
         for (Entity entity : entities) {
