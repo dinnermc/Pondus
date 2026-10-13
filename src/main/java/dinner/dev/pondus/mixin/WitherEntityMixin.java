@@ -6,12 +6,12 @@ import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.boss.wither.WitherEntity;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(WitherEntity.class)
+@Mixin(WitherBoss.class)
 public abstract class WitherEntityMixin {
     @Redirect(
         method = "performRangedAttack(ILnet/minecraft/world/entity/LivingEntity;)V",

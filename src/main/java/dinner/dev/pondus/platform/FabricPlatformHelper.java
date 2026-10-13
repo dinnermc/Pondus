@@ -1,26 +1,22 @@
 package dinner.dev.pondus.platform;
 
+import dinner.dev.pondus.CommonEvents;
 import dinner.dev.pondus.attachments.CommonDataAttachment;
 import dinner.dev.pondus.network.C2SModPacket;
-import dinner.dev.pondus.network.PacketHandlerFabric;
 import dinner.dev.pondus.network.S2CModPacket;
+import dinner.dev.pondus.platform.services.IPlatformHelper;
 import dinner.dev.pondus.util.EntityGravityData;
-import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.Function;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 
@@ -46,7 +42,7 @@ public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public <MSG extends S2CModPacket> void registerClientPlayPacket(CustomPacketPayload.Type<MSG> type, StreamCodec<RegistryFriendlyByteBuf, MSG> streamCodec) {
-        ServerPlayNetworking.registerGlobalReceiver(type, (packet, context) -> {
+        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(type, (packet, context) -> {
             packet.handleClient();
         });
     }
@@ -70,26 +66,26 @@ public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public void sendToTracking(S2CModPacket msg, Entity entity, boolean includeSelf) {
-        if (entity.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
-            PlayerLookup.tracking(entity, includeSelf).forEach(player -> {
-                ServerPlayNetworking.send(player, msg);
-            });
+        java.util.Collection<ServerPlayer> players = new java.util.LinkedHashSet<>(PlayerLookup.tracking(entity));
+        if (includeSelf && entity instanceof ServerPlayer self) {
+            players.add(self);
+        }
+        for (ServerPlayer player : players) {
+            ServerPlayNetworking.send(player, msg);
         }
     }
 
     @Override
     public <T> void registerDataAttachment(CommonDataAttachment<T> attachment) {
-        AttachmentType.Builder<T> builder = AttachmentType.builder(attachment.getDefaultValueSupplier());
+        AttachmentRegistry.Builder<T> builder = AttachmentRegistry.builder();
         if (attachment.getCodec() != null) {
-            builder.copyOnDeath(attachment.isCopyOnDeath());
-            builder.save(attachment.getCodec());
+            builder.persistent(attachment.getCodec());
+            if (attachment.isCopyOnDeath()) {
+                builder.copyOnDeath();
+            }
         }
-        if (attachment.canSync()) {
-            builder.syncWith(attachment.getStreamCodec());
-        }
-        
-        AttachmentType<T> type = builder.build();
-        Registry.register(BuiltInRegistries.ATTACHMENT_TYPE, attachment.getName(), type);
+
+        AttachmentType<T> type = builder.buildAndRegister(attachment.getName());
         attachment.setAttachment(type);
     }
 
@@ -99,7 +95,7 @@ public class FabricPlatformHelper implements IPlatformHelper {
     public <T> T getAttachedValue(Object object, CommonDataAttachment<T> attachment) {
         AttachmentType<T> type = (AttachmentType<T>) attachment.getAttachment();
         if (object instanceof AttachmentTarget attachmentTarget) {
-            return attachmentTarget.getData(type);
+            return attachmentTarget.getAttached(type);
         } else {
             throw new IllegalStateException("Cannot attach data to " + object);
         }
@@ -110,11 +106,7 @@ public class FabricPlatformHelper implements IPlatformHelper {
     public <T> void setAttachedValue(Object object, CommonDataAttachment<T> attachment, @Nullable T value) {
         AttachmentType<T> type = (AttachmentType<T>) attachment.getAttachment();
         if (object instanceof AttachmentTarget attachmentTarget) {
-            if (value == null) {
-                attachmentTarget.removeData(type);
-            } else {
-                attachmentTarget.setData(type, value);
-            }
+            attachmentTarget.setAttached(type, value);
         } else {
             throw new IllegalStateException("Cannot attach data to " + object);
         }

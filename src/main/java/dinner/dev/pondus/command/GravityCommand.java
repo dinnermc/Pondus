@@ -8,6 +8,7 @@ import dinner.dev.pondus.util.RotationUtil;
 import dinner.dev.pondus.zone.Zone;
 import dinner.dev.pondus.zone.ZoneManager;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -21,7 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 import org.apache.commons.lang3.Validate;
 
 import java.util.Collection;
@@ -296,19 +297,20 @@ public class GravityCommand {
             )
         );
 
+        // Modifier subcommands
         builder.then(Commands.literal("modifier")
             .then(Commands.literal("add")
                 .then(Commands.argument("source", StringArgumentType.word())
                     .then(Commands.argument("direction", StringArgumentType.word())
                         .then(Commands.argument("strength", DoubleArgumentType.doubleArg(0.1, 100))
-                            .executes(ctx -> executeAddModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                            .executes(ctx -> executeAddModifier(ctx, List.of(ctx.getSource().getEntityOrException())))
                             .then(Commands.argument("entities", EntityArgument.entities())
-                                .executes(ctx -> executeAddModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                                .executes(ctx -> executeAddModifier(ctx, EntityArgument.getEntities(ctx, "entities")))
                             )
                             .then(Commands.argument("priority", IntegerArgumentType.integer())
-                                .executes(ctx -> executeAddModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                                .executes(ctx -> executeAddModifier(ctx, List.of(ctx.getSource().getEntityOrException())))
                                 .then(Commands.argument("entities", EntityArgument.entities())
-                                    .executes(ctx -> executeAddModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                                    .executes(ctx -> executeAddModifier(ctx, EntityArgument.getEntities(ctx, "entities")))
                                 )
                             )
                         )
@@ -317,16 +319,16 @@ public class GravityCommand {
             )
             .then(Commands.literal("remove")
                 .then(Commands.argument("modifierId", StringArgumentType.word())
-                    .executes(ctx -> executeRemoveModifier(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                    .executes(ctx -> executeRemoveModifier(ctx, List.of(ctx.getSource().getEntityOrException())))
                     .then(Commands.argument("entities", EntityArgument.entities())
-                        .executes(ctx -> executeRemoveModifier(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                        .executes(ctx -> executeRemoveModifier(ctx, EntityArgument.getEntities(ctx, "entities")))
                     )
                 )
                 .then(Commands.literal("source")
                     .then(Commands.argument("sourceId", StringArgumentType.word())
-                        .executes(ctx -> executeRemoveModifiersBySource(ctx.getSource(), List.of(ctx.getSource().getEntityOrException())))
+                        .executes(ctx -> executeRemoveModifiersBySource(ctx, List.of(ctx.getSource().getEntityOrException())))
                         .then(Commands.argument("entities", EntityArgument.entities())
-                            .executes(ctx -> executeRemoveModifiersBySource(ctx.getSource(), EntityArgument.getEntities(ctx, "entities")))
+                            .executes(ctx -> executeRemoveModifiersBySource(ctx, EntityArgument.getEntities(ctx, "entities")))
                         )
                     )
                 )
@@ -399,17 +401,23 @@ public class GravityCommand {
             Direction newGravityDirection = RotationUtil.dirPlayerToWorld(combinedRelativeDirection, gravityDirection);
             PondusAPI.setBaseGravityDirection(entity, newGravityDirection);
 
-getSendFeedback(source, entity, newGravityDirection);
+            getSendFeedback(source, entity, newGravityDirection);
             i++;
         }
         return i;
     }
 
-    private static int executeAddModifier(CommandSourceStack source, Collection<? extends Entity> entities) {
-        String sourceId = StringArgumentType.getString(source, "source");
-        String dirStr = StringArgumentType.getString(source, "direction").toUpperCase();
-        double strength = DoubleArgumentType.getDouble(source, "strength");
-        int priority = source.getArgument("priority", Integer.class, 0);
+    private static int executeAddModifier(CommandContext<CommandSourceStack> ctx, Collection<? extends Entity> entities) {
+        CommandSourceStack source = ctx.getSource();
+        String sourceId = StringArgumentType.getString(ctx, "source");
+        String dirStr = StringArgumentType.getString(ctx, "direction").toUpperCase();
+        double strength = DoubleArgumentType.getDouble(ctx, "strength");
+        int priorityArg = 0;
+        try {
+            priorityArg = ctx.getArgument("priority", Integer.class);
+        } catch (IllegalArgumentException ignored) {
+        }
+        final int priority = priorityArg;
 
         Direction direction;
         switch (dirStr) {
@@ -445,8 +453,9 @@ getSendFeedback(source, entity, newGravityDirection);
         return count;
     }
 
-    private static int executeRemoveModifier(CommandSourceStack source, Collection<? extends Entity> entities) {
-        String idStr = StringArgumentType.getString(source, "modifierId");
+    private static int executeRemoveModifier(CommandContext<CommandSourceStack> ctx, Collection<? extends Entity> entities) {
+        CommandSourceStack source = ctx.getSource();
+        String idStr = StringArgumentType.getString(ctx, "modifierId");
         UUID modId;
         try {
             modId = UUID.fromString(idStr);
@@ -468,8 +477,9 @@ getSendFeedback(source, entity, newGravityDirection);
         return count;
     }
 
-    private static int executeRemoveModifiersBySource(CommandSourceStack source, Collection<? extends Entity> entities) {
-        String sourceId = StringArgumentType.getString(source, "sourceId");
+    private static int executeRemoveModifiersBySource(CommandContext<CommandSourceStack> ctx, Collection<? extends Entity> entities) {
+        CommandSourceStack source = ctx.getSource();
+        String sourceId = StringArgumentType.getString(ctx, "sourceId");
 
         int count = 0;
         for (Entity entity : entities) {

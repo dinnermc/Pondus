@@ -6,19 +6,19 @@ import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.CrossbowAttackMob;
-import net.minecraft.world.entity.monster.piglin.PiglinEntity;
+import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(PiglinEntity.class)
+@Mixin(Piglin.class)
 public abstract class PiglinMixin implements CrossbowAttackMob {
     @Redirect(
         method = "performRangedAttack",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/monster/piglin/PiglinEntity;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            target = "Lnet/minecraft/world/entity/monster/piglin/Piglin;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
             ordinal = 0
         )
     )

@@ -4,13 +4,13 @@ package dinner.dev.pondus.mixin;
 import dinner.dev.pondus.api.PondusAPI;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.monster.EndermanEntity;
-import net.minecraft.world.entity.player.PlayerEntity;
+import net.minecraft.world.entity.monster.EnderMan;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(EndermanEntity.class)
+@Mixin(EnderMan.class)
 public abstract class EndermanEntityMixin {
     @Redirect(
         method = "isLookingAtMe(Lnet/minecraft/world/entity/player/Player;)Z",
@@ -20,7 +20,7 @@ public abstract class EndermanEntityMixin {
             ordinal = 0
         )
     )
-    private double redirect_isPlayerStaring_getEyeY_0(PlayerEntity playerEntity) {
+    private double redirect_isPlayerStaring_getEyeY_0(Player playerEntity) {
         Direction gravityDirection = PondusAPI.getGravityDirection(playerEntity);
         if (gravityDirection == Direction.DOWN) {
             return playerEntity.getEyeY();
@@ -37,7 +37,7 @@ public abstract class EndermanEntityMixin {
             ordinal = 0
         )
     )
-    private double redirect_isPlayerStaring_getX_0(PlayerEntity playerEntity) {
+    private double redirect_isPlayerStaring_getX_0(Player playerEntity) {
         Direction gravityDirection = PondusAPI.getGravityDirection(playerEntity);
         if (gravityDirection == Direction.DOWN) {
             return playerEntity.getX();
@@ -54,7 +54,7 @@ public abstract class EndermanEntityMixin {
             ordinal = 0
         )
     )
-    private double redirect_isPlayerStaring_getZ_0(PlayerEntity playerEntity) {
+    private double redirect_isPlayerStaring_getZ_0(Player playerEntity) {
         Direction gravityDirection = PondusAPI.getGravityDirection(playerEntity);
         if (gravityDirection == Direction.DOWN) {
             return playerEntity.getZ();

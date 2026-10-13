@@ -7,7 +7,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.CrossbowAttackMob;
-import net.minecraft.world.entity.monster.PillagerEntity;
+import net.minecraft.world.entity.monster.Pillager;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
@@ -15,17 +15,17 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(PillagerEntity.class)
+@Mixin(Pillager.class)
 public abstract class PillagerEntityMixin implements CrossbowAttackMob {
     @Redirect(
         method = "performRangedAttack",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/monster/PillagerEntity;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            target = "Lnet/minecraft/world/entity/monster/Pillager;performCrossbowAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
             ordinal = 0
         )
     )
-    private void redirect_shoot_shoot_0(PillagerEntity pillagerEntity,LivingEntity target, float speed) {
+    private void redirect_shoot_shoot_0(Pillager pillagerEntity,LivingEntity target, float speed) {
         Direction gravityDirection = PondusAPI.getGravityDirection(target);
         if (gravityDirection == Direction.DOWN) {
             pillagerEntity.performCrossbowAttack(target, speed);

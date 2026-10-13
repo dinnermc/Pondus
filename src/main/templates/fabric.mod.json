@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "id": "pondus",
+  "id": "${mod_id}",
   "version": "${mod_version}",
-  "name": "Pondus",
-  "description": "Adds high performance Custom Gravity to minecraft. Fork of \"Gravity Changer Unofficial Port\"",
-  "authors": ["Dinner"],
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": ["${mod_authors}"],
   "contact": {},
-  "license": "MIT",
+  "license": "${mod_license}",
   "icon": "assets/pondus/icon.png",
   "environment": "*",
   "entrypoints": {
@@ -21,12 +21,13 @@
     "pondus.mixins.json",
     "pondus.fabric.mixins.json"
   ],
+  "accessWidener": "pondus.accesswidener",
   "depends": {
-    "fabricloader": ">=0.16.0",
+    "fabricloader": ">=${fabric_loader_version}",
     "minecraft": ">=1.21.1 <=1.21.1",
     "java": ">=21",
     "fabric-api": "*",
-    "cloth-config": ">=15.0.140"
+    "cloth-config": ">=${cloth_config_version}"
   },
   "custom": {
     "modmenu": {
