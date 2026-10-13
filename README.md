@@ -82,4 +82,4 @@ pondus_version=1.0.1
 - NeoForge 21.1+
 
 ## License
-This mod is licensed under the Creative Commons Attribution‑NonCommercial‑ShareAlike 4.0 International Public License (CC‑BY‑NC‑SA‑4.0).
+This mod is licensed under the MIT License.
