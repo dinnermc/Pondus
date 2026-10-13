@@ -47,7 +47,7 @@ This is the initial release of Pondus as a pure gravity modification API, conver
 - Network synchronization for multiplayer
 - Client and server platform helpers
 - No items or blocks - pure API only
-- License: CC-BY-NC-SA-4.0
+- License: MIT
 - Author: Dinner
 - Description: "Adds high performance Custom Gravity to minecraft. Fork of "Gravity Changer Unofficial Port""
 - Logo: pondus.png
