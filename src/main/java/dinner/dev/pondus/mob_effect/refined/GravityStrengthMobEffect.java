@@ -1,7 +1,8 @@
 package dinner.dev.pondus.mob_effect.refined;
 
 import dinner.dev.pondus.Pondus;
-import dinner.dev.pondus.api.IEntityGravityData;
+import dinner.dev.pondus.api.GravityModifier;
+import dinner.dev.pondus.api.PondusAPI;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -9,6 +10,8 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
+
+import java.util.UUID;
 
 public class GravityStrengthMobEffect extends MobEffect {
     
@@ -37,33 +40,39 @@ public class GravityStrengthMobEffect extends MobEffect {
         return Math.pow(base, level) * signum;
     }
     
-    public <M extends MobEffect> void apply(LivingEntity entity, IEntityGravityData component, Holder<M> effectHolder) {
-        MobEffectInstance effectInstance = entity.getEffect((Holder<MobEffect>) effectHolder);
+    @Override
+    public void applyEffectTick(LivingEntity entity, int amplifier) {
+        if (entity.level().isClientSide()) return;
         
-        if (effectInstance == null) {
-            return;
-        }
+        double multiplier = getGravityStrengthMultiplier(amplifier);
+        UUID modId = UUID.nameUUIDFromBytes(("effect:gravity_strength_" + (signum > 0 ? "increase" : signum < 0 ? "reverse" : "decrease")).getBytes());
         
-        int level = effectInstance.getAmplifier() + 1;
-    
-        component.applyGravityStrengthEffect(getGravityStrengthMultiplier(level));
+        // Strength effects are multiplicative - add as a modifier with current direction
+        PondusAPI.addModifier(entity, new GravityModifier(
+            UUID.nameUUIDFromBytes(("effect:gravity_strength_" + (signum > 0 ? "increase" : signum < 0 ? "reverse" : "decrease")).getBytes()),
+            "effect:gravity_strength",
+            net.minecraft.core.Direction.DOWN, // Direction doesn't matter for pure strength
+            getGravityStrengthMultiplier(amplifier),
+            GravityModifier.EFFECT_PRIORITY + amplifier,
+            null
+        ));
     }
 
-    /*
-        public static void init() {
-        GravityComponent.GRAVITY_UPDATE_EVENT.register((entity, component) -> {
-            if (entity instanceof LivingEntity livingEntity) {
-                GravityStrengthMobEffect increase,decrease,reverse;
-                increase = (GravityStrengthMobEffect) INCREASE.value();
-                decrease = (GravityStrengthMobEffect) DECREASE.value();
-                reverse = (GravityStrengthMobEffect) REVERSE.value();
-                increase.apply(livingEntity, component, GravityStrengthMobEffect.INCREASE);
-                decrease.apply(livingEntity, component, GravityStrengthMobEffect.DECREASE);
-                reverse.apply(livingEntity, component, GravityStrengthMobEffect.REVERSE);
-            }
-        });
+    @Override
+    public void removeAttributeModifiers(LivingEntity entity, net.minecraft.world.entity.ai.attributes.AttributeMap attributeMap, int amplifier) {
+        super.removeAttributeModifiers(entity, attributeMap, amplifier);
+        if (!entity.level().isClientSide()) {
+            UUID modId = UUID.nameUUIDFromBytes(("effect:gravity_strength_" + (signum > 0 ? "increase" : signum < 0 ? "reverse" : "decrease")).getBytes());
+            PondusAPI.removeModifier(entity, modId);
+        }
     }
-     */
+
+    public static void init() {
+    }
+    
+    public double getGravityStrengthMultiplier(int level) {
+        return Math.pow(base, level) * signum;
+    }
 
     private static <M extends MobEffect> Holder.Reference<M> register(String string, M mobEffect) {
         return (Holder.Reference<M>) Registry.registerForHolder(BuiltInRegistries.MOB_EFFECT, Pondus.id(string), mobEffect);

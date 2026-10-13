@@ -13,6 +13,11 @@ import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
 public interface PondusAPI {
 
     static EntityGravityData getGravityData(Entity entity) {
@@ -83,6 +88,47 @@ public interface PondusAPI {
     static RotationAnimation getRotationAnimation(Entity entity) {
         IEntityGravityData data = getGravityData(entity);
         return data == null ? null :data.getRotationAnimation();
+    }
+
+    // ==================== Modifier Stack API ====================
+
+    /**
+     * Add a gravity modifier from a specific source.
+     * The modifier with the highest priority determines the gravity direction.
+     * All strength multipliers multiply together.
+     */
+    static void addModifier(Entity entity, GravityModifier modifier) {
+        getGravityData(entity).addModifier(modifier);
+    }
+
+    /**
+     * Remove a specific modifier by its ID.
+     */
+    static void removeModifier(Entity entity, UUID modifierId) {
+        getGravityData(entity).removeModifier(modifierId);
+    }
+
+    /**
+     * Remove all modifiers from a specific source (e.g. "zone:spawn", "effect:gravity_increase").
+     */
+    static void removeModifiersBySource(Entity entity, String sourceId) {
+        getGravityData(entity).removeModifiersBySource(sourceId);
+    }
+
+    /**
+     * Get all active modifiers for an entity (read-only copy).
+     */
+    static List<GravityModifier> getModifiers(Entity entity) {
+        return getGravityData(entity).getModifiers();
+    }
+
+    /**
+     * Get the highest priority modifier for a given source, if any.
+     */
+    static Optional<GravityModifier> getModifierBySource(Entity entity, String sourceId) {
+        return getGravityData(entity).getModifiers().stream()
+            .filter(m -> m.sourceId().equals(sourceId))
+            .max(Comparator.comparingInt(GravityModifier::priority));
     }
 
     static double getDimensionGravityStrength(Level world) {
