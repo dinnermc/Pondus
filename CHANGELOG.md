@@ -3,7 +3,7 @@
 ## 1.1.0 - 2026-11-23
 ### Gravity Zones, Planetary Physics & Addon API
 - **Persistent per-dimension Gravity Zones**: box, sphere, and cylinder shapes with smooth spatial transitions, `center` radial gravity, `/gravity zone enable|disable`, and client-side wireframe/arrow visualizer (`G`).
-- **Outer Wilds-ready planetary physics**:
+- **Planetary & zero-G space physics**:
   - Frame-rate-independent exponential camera damping for smooth high-speed movement around spheres and seamless cardinal face handoff.
   - 90° cardinal switch hysteresis + grounded lateral damping so walking/building on spherical planetoids feels stable.
   - Smooth inner core deadzone/fade and Newtonian `1/r²` helper (`GravityFieldShapes.inverseSquareStrength`).

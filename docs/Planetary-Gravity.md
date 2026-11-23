@@ -1,6 +1,6 @@
-# Outer Wilds & Planetary Gravity Guide
+# Planetary & Zero-G Gravity Guide
 
-Pondus is designed so space mods can build smooth, Outer Wilds-style solar systems on top of a tiny, bloat-free API.
+Pondus is designed so space mods can build smooth planetary and orbital gravity systems on top of a tiny, bloat-free API.
 
 ## 1. Make Space Truly Zero-G
 
@@ -78,12 +78,12 @@ public final class CelestialBodyGravity implements GravitySource {
 Register each body scoped to your space dimension:
 
 ```java
-PondusAPI.registerLevelGravitySource(spaceLevel, timberHearth);
-PondusAPI.registerLevelGravitySource(spaceLevel, attlerockMoon);
+PondusAPI.registerLevelGravitySource(spaceLevel, homePlanet);
+PondusAPI.registerLevelGravitySource(spaceLevel, nearbyMoon);
 ```
 
 ### What Pondus Handles Automatically
-* **Natural Lagrange points:** Because `timberHearth` and `attlerockMoon` share `ZONE_PRIORITY`, Pondus adds their force vectors (`vecA * sA + vecB * sB`), creating a real zero-G balance point between planet and moon.
+* **Natural Lagrange points:** Because `homePlanet` and `nearbyMoon` share `ZONE_PRIORITY`, Pondus adds their force vectors (`vecA * sA + vecB * sB`), creating a real zero-G balance point between planet and moon.
 * **Smooth high-speed orbiting camera:** Pondus uses continuous frame-rate-independent exponential quaternion damping and seamless cardinal face handoff (no 20 Hz stuttering and no 45° face-seam stalls).
 * **Stable voxel walking:** 90° cardinal hysteresis prevents edge flickering, and grounded lateral pull is damped (suppressed while sneaking) so walking/building on a voxel planet feels solid while mid-air jumps follow the full 3D radial vector.
 

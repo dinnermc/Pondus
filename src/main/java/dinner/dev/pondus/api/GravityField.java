@@ -96,7 +96,7 @@ public record GravityField(
     }
 
     /**
-     * Convenience factory for planetary/celestial gravity bodies (Outer Wilds-style planets and moons).
+     * Convenience factory for planetary/celestial gravity bodies (planets, moons, asteroids).
      * Uses {@link GravityModifier#ZONE_PRIORITY}, absolute strength (works in zero-G space),
      * and smooth world-velocity-preserving rotation. Multiple overlapping planetary sources
      * at the same priority automatically combine vectorially (forming natural Lagrange points).
