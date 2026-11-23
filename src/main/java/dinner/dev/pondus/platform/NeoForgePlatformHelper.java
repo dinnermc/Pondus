@@ -11,6 +11,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 
@@ -80,6 +81,11 @@ public class NeoForgePlatformHelper implements IPlatformHelper {
         } else {
             PacketDistributor.sendToPlayersTrackingEntity(entity,msg);
         }
+    }
+
+    @Override
+    public void sendToLevel(S2CModPacket msg, ServerLevel level) {
+        PacketDistributor.sendToPlayersInDimension(level, msg);
     }
 
     @Override

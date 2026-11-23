@@ -175,11 +175,14 @@ public abstract class RotationUtil {
     }
 
     public static Vec2 vecToRot(double x, double y, double z) {
-        double sinPitch = -y;
+        double sinPitch = Mth.clamp(-y, -1.0, 1.0);
         double radPitch = Math.asin(sinPitch);
         double cosPitch = Math.cos(radPitch);
+        if (Math.abs(cosPitch) < 1.0E-6) {
+            return new Vec2(0.0F, (float) (radPitch / 0.017453292F));
+        }
         double sinNegYaw = x / cosPitch;
-        double cosNegYaw = Mth.clamp(z / cosPitch, -1, 1);
+        double cosNegYaw = Mth.clamp(z / cosPitch, -1.0, 1.0);
         double radNegYaw = Math.acos(cosNegYaw);
         if (sinNegYaw < 0) radNegYaw = Math.PI * 2 - radNegYaw;
 
@@ -216,6 +219,42 @@ public abstract class RotationUtil {
      */
     public static Quaternionf getWorldRotationQuaternion(Direction gravityDirection) {
         return WORLD_ROTATION_QUATERNIONS[gravityDirection.get3DDataValue()];
+    }
+
+    /**
+     * Returns the world-to-gravity rotation for a continuous world-space gravity vector,
+     * aligned with the nearest cardinal direction's yaw frame so there is no twist jump
+     * when approaching or leaving a cardinal gravity axis.
+     */
+    public static Quaternionf getWorldRotationQuaternion(Vec3 gravityVector) {
+        double lenSq = gravityVector.lengthSqr();
+        if (!Double.isFinite(gravityVector.x) || !Double.isFinite(gravityVector.y)
+            || !Double.isFinite(gravityVector.z) || lenSq < 1.0E-12) {
+            return new Quaternionf();
+        }
+        Vec3 normalized = gravityVector.scale(1.0 / Math.sqrt(lenSq));
+        Direction nearest = Direction.getNearest(normalized.x, normalized.y, normalized.z);
+        return getWorldRotationQuaternion(normalized, nearest);
+    }
+
+    /**
+     * Returns the world-to-gravity rotation for a continuous world-space gravity vector
+     * anchored to the given cardinal reference direction's coordinate frame.
+     */
+    public static Quaternionf getWorldRotationQuaternion(Vec3 gravityVector, Direction referenceDirection) {
+        double lenSq = gravityVector.lengthSqr();
+        if (!Double.isFinite(gravityVector.x) || !Double.isFinite(gravityVector.y)
+            || !Double.isFinite(gravityVector.z) || lenSq < 1.0E-12) {
+            return new Quaternionf(getWorldRotationQuaternion(referenceDirection));
+        }
+        Vec3 normalized = gravityVector.scale(1.0 / Math.sqrt(lenSq));
+        Quaternionf baseRotation = getWorldRotationQuaternion(referenceDirection);
+        Vec3 localGravity = vecWorldToPlayer(normalized, referenceDirection);
+        if (localGravity.distanceToSqr(new Vec3(0, -1, 0)) < 1.0E-12) {
+            return new Quaternionf(baseRotation);
+        }
+        Quaternionf tilt = QuaternionUtil.getRotationBetween(localGravity, new Vec3(0, -1, 0));
+        return tilt.mul(baseRotation);
     }
 
     private static final Quaternionf[] ENTITY_ROTATION_QUATERNIONS = new Quaternionf[6];

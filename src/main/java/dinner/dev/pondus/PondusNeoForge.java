@@ -4,8 +4,11 @@ import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.command.GravityCommand;
 import dinner.dev.pondus.network.PacketHandlerNeoForge;
 import dinner.dev.pondus.network.S2CEntityGravityPacket;
+import dinner.dev.pondus.network.S2CLevelGravityPacket;
+import dinner.dev.pondus.network.S2CZoneVisualizationPacket;
 import dinner.dev.pondus.platform.Services;
 import dinner.dev.pondus.util.EntityGravityData;
+import dinner.dev.pondus.zone.ZoneManager;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -40,6 +43,7 @@ public class PondusNeoForge {
         NeoForge.EVENT_BUS.addListener(this::login);
         NeoForge.EVENT_BUS.addListener(this::commands);
         NeoForge.EVENT_BUS.addListener(this::tracking);
+        NeoForge.EVENT_BUS.addListener(this::clonePlayer);
         NeoForge.EVENT_BUS.addListener(this::respawn);
         NeoForge.EVENT_BUS.addListener(this::dimensionChange);
         NeoForgeEvents.init();
@@ -57,48 +61,53 @@ public class PondusNeoForge {
     void login(PlayerEvent.PlayerLoggedInEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
         ServerLevel level = player.serverLevel();
-        //                Services.PLATFORM.sendToTracking(new S2CSyncEntityGravityPacket(entity, serializeNBT()), entity, true);
+        syncLevelGravity(player, level);
+        syncPlayerGravity(player);
+    }
 
-        /*level.getCapability(PondusAPIForge.LEVEL_GRAVITY).ifPresent(entityGravityAttachment -> {
+    void clonePlayer(PlayerEvent.Clone event) {
+        if (!event.isWasDeath() || !Pondus.config.resetGravityOnRespawn) {
             CompoundTag data = new CompoundTag();
-            entityGravityAttachment.toNbt(data);
-            Services.PLATFORM.sendToClient(new S2CLevelGravityPacket(data), player);
-        });*/
-
-        EntityGravityData entityGravityData = PondusAPI.getGravityData(player);
-        CompoundTag data = new CompoundTag();
-        entityGravityData.toNbt(data);
-        Services.PLATFORM.sendToTracking(new S2CEntityGravityPacket(player, data), player, true);
+            PondusAPI.getGravityData(event.getOriginal()).toNbt(data);
+            PondusAPI.getGravityData(event.getEntity()).fromNbt(data);
+        }
     }
 
     void respawn(PlayerEvent.PlayerRespawnEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
         ServerLevel level = player.serverLevel();
-
-       /* level.getCapability(PondusAPIForge.LEVEL_GRAVITY).ifPresent(entityGravityAttachment -> {
-            CompoundTag data = new CompoundTag();
-            entityGravityAttachment.toNbt(data);
-            Services.PLATFORM.sendToClient(new S2CLevelGravityPacket(data),player);
-        });*/
-
-        EntityGravityData entityGravityData = PondusAPI.getGravityData(player);
-
-        CompoundTag data = new CompoundTag();
-        entityGravityData.toNbt(data);
-        Services.PLATFORM.sendToTracking(new S2CEntityGravityPacket(player, data), player, true);
+        syncLevelGravity(player, level);
+        syncPlayerGravity(player);
     }
-
 
     void dimensionChange(PlayerEvent.PlayerChangedDimensionEvent event) {
         ServerPlayer player = (ServerPlayer) event.getEntity();
         ServerLevel level = player.server.getLevel(event.getTo());
+        if (level != null) {
+            syncLevelGravity(player, level);
+            Services.PLATFORM.sendToClient(
+                S2CZoneVisualizationPacket.fromZones(
+                    level.dimension(),
+                    ZoneManager.getInstance().getZones(level).values()
+                ),
+                player
+            );
+        }
+        syncPlayerGravity(player);
+    }
 
+    private static void syncLevelGravity(ServerPlayer player, ServerLevel level) {
+        Services.PLATFORM.sendToClient(
+            new S2CLevelGravityPacket(level.dimension(), PondusAPI.getDimensionGravityStrength(level)),
+            player
+        );
+    }
 
-        /*level.getCapability(PondusAPIForge.LEVEL_GRAVITY).ifPresent(entityGravityAttachment -> {
-            CompoundTag data = new CompoundTag();
-            entityGravityAttachment.toNbt(data);
-            Services.PLATFORM.sendToClient(new S2CLevelGravityPacket(data),player);
-        });*/
+    private static void syncPlayerGravity(ServerPlayer player) {
+        EntityGravityData entityGravityData = PondusAPI.getGravityData(player);
+        CompoundTag data = new CompoundTag();
+        entityGravityData.toNbt(data);
+        Services.PLATFORM.sendToTracking(new S2CEntityGravityPacket(player, data), player, true);
     }
 
     void tracking(PlayerEvent.StartTracking event) {

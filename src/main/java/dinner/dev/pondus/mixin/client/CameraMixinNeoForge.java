@@ -6,6 +6,7 @@ import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Quaternionf;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -39,14 +40,13 @@ public class CameraMixinNeoForge {
             if (animation == null) {
                 return;
             }
-            if (gravityDirection == Direction.DOWN && !animation.isInAnimation()) {
+            float partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+            long timeMs = entity.level().getGameTime() * 50 + (long) (partialTick * 50);
+            if (PondusAPI.getGravityVector(entity).distanceToSqr(new Vec3(0, -1, 0)) < 1.0E-8
+                && !animation.isRotationActive(timeMs)) {
                 return;
             }
 
-            //TODO: Check if we want this to return 1.0 getTickDelta(false) or the real value
-            // while tick freeze is active
-            float partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);//getTickDelta();
-            long timeMs = entity.level().getGameTime() * 50 + (long) (partialTick * 50);
             Quaternionf rotation = new Quaternionf(animation.getCurrentGravityRotation(gravityDirection, timeMs));
             rotation.conjugate();
             rotation.mul(this.rotation);

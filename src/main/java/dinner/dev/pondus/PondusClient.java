@@ -77,6 +77,7 @@ public class PondusClient {
             BlockState blockState = player.level().getBlockState(mutable);
             if (blockState.getRenderShape() != RenderShape.INVISIBLE && blockState.isViewBlocking(player.level(), mutable)) {
                 cir.setReturnValue(blockState);
+                return;
             }
         }
 

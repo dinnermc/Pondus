@@ -3,6 +3,7 @@ package dinner.dev.pondus.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
+import dinner.dev.pondus.RotationAnimation;
 import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.core.Direction;
@@ -16,17 +17,32 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 //TODO: Double check the return ordinal stuff, idk why it did that
-@Debug(export = true)
 @Mixin(value = Player.class, priority = 1001)
 public abstract class PlayerEntityMixin extends LivingEntity {
     protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, Level world) { super(entityType, world); }
+
+    @ModifyVariable(
+            method = "travel",
+            at = @At("HEAD"),
+            argsOnly = true
+    )
+    private Vec3 preserveWorldStrafeDirection(Vec3 movement) {
+        RotationAnimation animation = PondusAPI.getRotationAnimation(this);
+        if (animation == null) {
+            return movement;
+        }
+
+        float strafeMultiplier = animation.getStrafeInputMultiplier();
+        return strafeMultiplier == 1.0F
+            ? movement
+            : new Vec3(movement.x * strafeMultiplier, movement.y, movement.z);
+    }
 
     @WrapOperation(
             method = "travel",

@@ -33,19 +33,20 @@ public abstract class GameRendererMixin {
     )
     private void inject_renderWorld(DeltaTracker deltaTracker, CallbackInfo ci) {
         Entity focusedEntity = this.mainCamera.getEntity();
+        if (focusedEntity == null) {
+            return;
+        }
         Direction gravityDirection = PondusAPI.getGravityDirection(focusedEntity);
         RotationAnimation animation = PondusAPI.getRotationAnimation(focusedEntity);
         if (animation == null) {
             return;
         }
         long timeMs = focusedEntity.level().getGameTime() * 50 + (long) (deltaTracker.getGameTimeDeltaPartialTick(true) * 50);
-        Quaternionf currentGravityRotation = animation.getCurrentGravityRotation(gravityDirection, timeMs);
+        animation.getCurrentGravityRotation(gravityDirection, timeMs);
 
-        if (animation.isInAnimation()) {
+        if (animation.isRotationActive(timeMs)) {
             // make sure that frustum culling updates when running rotation animation
             Minecraft.getInstance().levelRenderer.needsUpdate();
         }
-        PoseStack poseStack = new PoseStack();
-        poseStack.mulPose(currentGravityRotation);
     }
 }

@@ -7,6 +7,7 @@ import dinner.dev.pondus.util.EntityGravityData;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
@@ -58,6 +59,11 @@ public interface IPlatformHelper {
     void sendToServer(C2SModPacket msg);
 
     void sendToTracking(S2CModPacket msg, Entity entity, boolean includeSelf);
+
+    /**
+     * Sends a packet to every player currently in the given level/dimension.
+     */
+    void sendToLevel(S2CModPacket msg, ServerLevel level);
 
 
     <T> void registerDataAttachment(CommonDataAttachment<T> attachment);
