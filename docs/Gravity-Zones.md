@@ -38,7 +38,7 @@ Pondus includes persistent, **per-dimension** gravity zones that survive restart
 
 ## Client Visualizer
 
-Press **`G`** (rebindable in Controls → Pondus) to toggle the in-world zone visualizer for your current dimension:
+Press **`F9`** (rebindable in Controls → Pondus) to toggle the in-world zone visualizer for your current dimension:
 * Bright wireframe = core shape (100% influence).
 * Dim wireframe = outer transition boundary.
 * Arrows = direction of pull (inward cyan arrows for `center` zones).
