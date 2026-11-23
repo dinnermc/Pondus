@@ -25,6 +25,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
@@ -739,6 +741,25 @@ public abstract class EntityMixin implements EntityDuck {
         cir.setReturnValue(cir.getReturnValue() * dinner.dev.pondus.api.PondusAPI.getGravityStrength(((Entity) (Object) this)));
     }
 
+    @Inject(method = "applyGravity", at = @At("HEAD"), cancellable = true)
+    private void pondus$applyContinuousGravity(CallbackInfo ci) {
+        Entity entity = (Entity) (Object) this;
+        if (entity.isNoGravity()) {
+            return;
+        }
+
+        Vec3 gravityVector = PondusAPI.getGravityVector(entity);
+        Direction gravityDirection = PondusAPI.getGravityDirection(entity);
+        Vec3 cardinalVector = Vec3.atLowerCornerOf(gravityDirection.getNormal());
+        if (gravityVector.distanceToSqr(cardinalVector) < 1.0E-8) {
+            return;
+        }
+
+        Vec3 localGravity = RotationUtil.vecWorldToPlayer(gravityVector, gravityDirection);
+        entity.setDeltaMovement(entity.getDeltaMovement().add(localGravity.scale(entity.getGravity())));
+        ci.cancel();
+    }
+
     //makes it possible to use in common
     @Unique
     protected EntityGravityData entityGravityData;
@@ -751,5 +772,21 @@ public abstract class EntityMixin implements EntityDuck {
     @Inject(method = "<init>",at = @At("RETURN"))
     private void init(EntityType<?> entityType, Level level, CallbackInfo ci) {
         entityGravityData = new EntityGravityData((Entity) (Object) this);
+    }
+
+    @Inject(method = "saveWithoutId", at = @At("RETURN"))
+    private void pondus$saveGravityData(CompoundTag compound, CallbackInfoReturnable<CompoundTag> cir) {
+        if (entityGravityData != null && PondusAPI.canChangeGravity((Entity) (Object) this) && !entityGravityData.isDefault()) {
+            CompoundTag gravityTag = new CompoundTag();
+            entityGravityData.toNbt(gravityTag);
+            compound.put("pondus:gravity", gravityTag);
+        }
+    }
+
+    @Inject(method = "load", at = @At("RETURN"))
+    private void pondus$loadGravityData(CompoundTag compound, CallbackInfo ci) {
+        if (entityGravityData != null && compound.contains("pondus:gravity", Tag.TAG_COMPOUND)) {
+            entityGravityData.fromNbt(compound.getCompound("pondus:gravity"));
+        }
     }
 }

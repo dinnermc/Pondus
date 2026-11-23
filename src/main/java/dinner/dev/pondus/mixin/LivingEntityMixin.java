@@ -7,17 +7,21 @@ import dinner.dev.pondus.api.PondusAPI;
 import dinner.dev.pondus.util.RotationUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.util.Mth;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.animal.FlyingAnimal;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import org.spongepowered.asm.mixin.Debug;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -30,12 +34,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
-@Debug(export = true)
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity {
     @Shadow public abstract void readAdditionalSaveData(CompoundTag nbt);
     @Shadow public abstract EntityDimensions getDimensions(Pose pose);
     @Shadow public abstract float getViewYRot(float tickDelta);
+    @Shadow public abstract boolean hasEffect(Holder<MobEffect> effect);
+    @Shadow public abstract boolean isFallFlying();
+    @Shadow public abstract boolean shouldDiscardFriction();
+    @Shadow public abstract boolean canStandOnFluid(FluidState fluidState);
+    @Shadow protected abstract boolean isAffectedByFluids();
 
     public LivingEntityMixin(EntityType<?> type, Level world) {
         super(type, world);
@@ -476,18 +484,65 @@ public abstract class LivingEntityMixin extends Entity {
         args.set(3, vec3d.z);
     }
 
-    @ModifyVariable(
+    @Inject(
             method = "travel",
-            at = @At(value = "STORE"),
-            ordinal = 0
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;calculateEntityAnimation(Z)V"
+            )
     )
-    private double injected(double d) {
-        return d * PondusAPI.getGravityStrength(this);
+    private void pondus$applyContinuousLivingGravity(Vec3 travelVector, CallbackInfo ci) {
+        if (!this.isControlledByLocalInstance() || this.isNoGravity()
+            || this.hasEffect(MobEffects.LEVITATION) || this.isFallFlying()
+            || this.isInWater() || this.isInLava()) {
+            return;
+        }
+
+        BlockPos below = this.getBlockPosBelowThatAffectsMyMovement();
+        if (this.level().isClientSide && !this.level().hasChunkAt(below)) {
+            return;
+        }
+
+        Vec3 gravityVector = PondusAPI.getGravityVector(this);
+        Direction gravityDirection = PondusAPI.getGravityDirection(this);
+        Vec3 cardinalVector = Vec3.atLowerCornerOf(gravityDirection.getNormal());
+        if (gravityVector.distanceToSqr(cardinalVector) < 1.0E-8) {
+            return;
+        }
+
+        double gravity = this.getGravity();
+        if (this.getDeltaMovement().y <= 0.0 && this.hasEffect(MobEffects.SLOW_FALLING)) {
+            gravity = Math.min(gravity, 0.01);
+        }
+        if (Math.abs(gravity) < 1.0E-9) {
+            return;
+        }
+
+        Vec3 localGravity = RotationUtil.vecWorldToPlayer(gravityVector, gravityDirection);
+        double dragY;
+        if (this.shouldDiscardFriction()) {
+            dragY = 1.0;
+        } else if ((Object) this instanceof FlyingAnimal) {
+            float friction = this.level().getBlockState(below).getBlock().getFriction();
+            dragY = this.onGround() ? friction * 0.91F : 0.91F;
+        } else {
+            dragY = 0.98F;
+        }
+
+        // Vanilla already applied -gravity along local Y; adjust to the full continuous local vector.
+        // Dampen lateral tangential pull while grounded (and suppress while sneaking) so walking
+        // on flat blocks of a spherical planetoid feels stable instead of slippery.
+        double lateralFactor = this.onGround() ? (this.isShiftKeyDown() ? 0.0 : 0.15) : 1.0;
+        this.setDeltaMovement(this.getDeltaMovement().add(
+            localGravity.x * gravity * lateralFactor,
+            (localGravity.y + 1.0) * gravity * dragY,
+            localGravity.z * gravity * lateralFactor
+        ));
     }
 
     @ModifyVariable(method = "calculateFallDamage", at = @At("HEAD"), ordinal = 0, argsOnly = true)
     private float diminishFallDamage(float value) {
-        return value * (float) Math.sqrt(PondusAPI.getGravityStrength(this));
+        return value * (float) Math.sqrt(Math.max(0.0, PondusAPI.getGravityStrength(this)));
     }
 
     @Shadow public abstract void calculateEntityAnimation(boolean flutter);

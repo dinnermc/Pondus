@@ -40,6 +40,8 @@ import java.util.UUID;
 public class EntityGravityData implements IEntityGravityData {
 
     protected static final Logger LOGGER = LogUtils.getLogger();
+    private static final double GRAVITY_VECTOR_SYNC_THRESHOLD_SQR = 4.0E-5;
+    private static final double CARDINAL_SWITCH_HYSTERESIS = 0.16;
     public final Entity entity;
     // Only used on client, not synchronized.
     @Nullable
@@ -50,12 +52,15 @@ public class EntityGravityData implements IEntityGravityData {
 
     // only used on server side
     protected boolean needsSync = false;
+    private Vec3 syncedGravityVector = new Vec3(0, -1, 0);
 
     protected boolean initialized = false;
     // not synchronized
     protected Direction prevGravityDirection = Direction.DOWN;
+    protected Vec3 prevGravityVector = new Vec3(0, -1, 0);
     protected double prevGravityStrength = 1.0;
     protected Direction currGravityDirection = Direction.DOWN;
+    protected Vec3 currGravityVector = new Vec3(0, -1, 0);
     protected double currGravityStrength = 1.0;
     // the base gravity direction
     protected Direction baseGravityDirection = Direction.DOWN;
@@ -81,12 +86,18 @@ public class EntityGravityData implements IEntityGravityData {
 
     @Override
     public void addModifier(GravityModifier modifier) {
+        Direction oldGravityDirection = currGravityDirection;
+        double oldGravityStrength = currGravityStrength;
         // Replace any existing modifier with the same ID.
         modifiers.removeIf(m -> m.id().equals(modifier.id()));
         modifiers.add(modifier);
         modifiers.sort(Comparator.comparingInt(GravityModifier::priority).reversed());
         recomputeGravity();
-        needsSync = true;
+        if (oldGravityDirection != currGravityDirection
+            || syncedGravityVector.distanceToSqr(currGravityVector) >= GRAVITY_VECTOR_SYNC_THRESHOLD_SQR
+            || Math.abs(oldGravityStrength - currGravityStrength) > 0.0001) {
+            needsSync = true;
+        }
     }
 
     @Override
@@ -141,19 +152,47 @@ public class EntityGravityData implements IEntityGravityData {
     // ==================== Gravity Computation ====================
 
     protected void recomputeGravity() {
-        // Direction: highest priority modifier wins, else the base direction.
-        Optional<Direction> dirOpt = GravityModifier.computeDirection(modifiers);
-        currGravityDirection = dirOpt.orElse(baseGravityDirection);
+        // The vector retains continuous source directions; cardinal alignment uses hysteresis
+        // so walking across 45-degree sphere seams does not oscillate between faces.
+        Optional<Vec3> gravityVector = GravityModifier.computeGravityVector(modifiers);
+        currGravityVector = gravityVector.orElseGet(
+            () -> Vec3.atLowerCornerOf(baseGravityDirection.getNormal())
+        );
+        currGravityDirection = resolveCardinalDirection(currGravityVector, currGravityDirection);
 
-        // Strength: all multipliers stack multiplicatively on top of the base.
-        double modifierStrength = GravityModifier.computeStrength(modifiers);
-        currGravityStrength = baseGravityStrength * modifierStrength;
-        currGravityStrength *= PondusAPI.getDimensionGravityStrength(entity.level());
+        // Strength: absolute local fields (planets, zones) establish local gravity independent
+        // of ambient dimension gravity (so planets work in zero-G space); multiplicative
+        // modifiers (items, potions, effects) then scale the resulting strength.
+        double multiplicativeStrength = GravityModifier.computeMultiplicativeStrength(modifiers);
+        Optional<Double> absoluteFieldStrength = GravityModifier.computeAbsoluteFieldStrength(modifiers);
+        if (absoluteFieldStrength.isPresent()) {
+            currGravityStrength = absoluteFieldStrength.get() * multiplicativeStrength;
+        } else {
+            currGravityStrength = baseGravityStrength
+                * PondusAPI.getDimensionGravityStrength(entity.level())
+                * multiplicativeStrength;
+        }
         currGravityStrength *= Pondus.config.gravityStrengthMultiplier;
 
         // Rotation parameters: highest priority modifier that supplies them.
         Optional<RotationParameters> rotOpt = GravityModifier.computeRotationParameters(modifiers);
         currentRotationParameters = rotOpt.orElseGet(RotationParameters::getDefault);
+    }
+
+    private static Direction resolveCardinalDirection(Vec3 gravityVector, Direction currentDirection) {
+        Direction nearest = Direction.getNearest(gravityVector.x, gravityVector.y, gravityVector.z);
+        if (currentDirection == null || nearest == currentDirection) {
+            return nearest;
+        }
+        double nearestDot = gravityVector.dot(Vec3.atLowerCornerOf(nearest.getNormal()));
+        if (nearestDot > 0.999) {
+            return nearest;
+        }
+        double currentDot = gravityVector.dot(Vec3.atLowerCornerOf(currentDirection.getNormal()));
+        if (currentDot > 0.0 && nearestDot - currentDot < CARDINAL_SWITCH_HYSTERESIS) {
+            return currentDirection;
+        }
+        return nearest;
     }
 
     // ==================== Base Gravity (Commands) ====================
@@ -177,6 +216,11 @@ public class EntityGravityData implements IEntityGravityData {
     @Override
     public Direction getCurrGravityDirection() {
         return currGravityDirection;
+    }
+
+    @Override
+    public Vec3 getCurrGravityVector() {
+        return currGravityVector;
     }
 
     @Override
@@ -225,13 +269,24 @@ public class EntityGravityData implements IEntityGravityData {
     @Override
     public void forceApplyGravityChange() {
         prevGravityDirection = currGravityDirection;
+        prevGravityVector = currGravityVector;
         prevGravityStrength = currGravityStrength;
+    }
+
+    public boolean isDefault() {
+        return baseGravityDirection == Direction.DOWN
+            && Math.abs(baseGravityStrength - 1.0) <= 1.0E-6
+            && modifiers.isEmpty();
     }
 
     @Override
     public void commonTick() {
         if (!canChangeGravity()) {
             return;
+        }
+
+        if (!entity.level().isClientSide()) {
+            tickTimedModifiers();
         }
 
         updateGravityStatus(true);
@@ -246,10 +301,31 @@ public class EntityGravityData implements IEntityGravityData {
         }
     }
 
+    private void tickTimedModifiers() {
+        boolean expiredAny = false;
+        for (int i = modifiers.size() - 1; i >= 0; i--) {
+            GravityModifier modifier = modifiers.get(i);
+            if (!modifier.isTimed()) {
+                continue;
+            }
+            if (modifier.durationTicks() <= 1) {
+                modifiers.remove(i);
+                expiredAny = true;
+            } else {
+                modifiers.set(i, modifier.tickDown());
+            }
+        }
+        if (expiredAny) {
+            recomputeGravity();
+            needsSync = true;
+        }
+    }
+
     protected void syncEntity() {
         CompoundTag tag = new CompoundTag();
         toNbt(tag);
         Services.PLATFORM.sendToTracking(new S2CEntityGravityPacket(entity,tag),entity,true);
+        syncedGravityVector = currGravityVector;
     }
 
     // ==================== Gravity Application ====================
@@ -436,16 +512,28 @@ public class EntityGravityData implements IEntityGravityData {
             currentRotationParameters = RotationParameters.getDefault();
         }
 
+        boolean changed = false;
         if (prevGravityDirection != currGravityDirection) {
             applyGravityDirectionChange(
                 prevGravityDirection, currGravityDirection,
                 currentRotationParameters, false
             );
             prevGravityDirection = currGravityDirection;
+            changed = true;
+        }
+
+        if (prevGravityVector.distanceToSqr(currGravityVector) > 1.0E-8) {
+            prevGravityVector = currGravityVector;
+            changed = true;
         }
 
         if (Math.abs(currGravityStrength - prevGravityStrength) > 0.0001) {
             prevGravityStrength = currGravityStrength;
+            changed = true;
+        }
+
+        if (changed) {
+            postEvent();
         }
     }
 
@@ -460,12 +548,14 @@ public class EntityGravityData implements IEntityGravityData {
         }
 
         Direction oldGravityDirection = currGravityDirection;
+        Vec3 oldGravityVector = currGravityVector;
         double oldGravityStrength = currGravityStrength;
 
         Entity vehicle = entity.getVehicle();
         if (vehicle != null) {
             // Vehicle gravity fully overrides the rider's gravity.
             currGravityDirection = PondusAPI.getGravityDirection(vehicle);
+            currGravityVector = PondusAPI.getGravityVector(vehicle);
             currGravityStrength = PondusAPI.getGravityStrength(vehicle);
         }
         else {
@@ -474,28 +564,40 @@ public class EntityGravityData implements IEntityGravityData {
             recomputeGravity();
         }
 
+        if (entity.level().isClientSide()
+            && (currGravityDirection != oldGravityDirection
+                || currGravityVector.distanceToSqr(oldGravityVector) > 1.0E-8)
+            && animation != null) {
+            animation.setGravityVector(currGravityVector, currGravityDirection, entity.level().getGameTime() * 50);
+        }
+
         lastUpdateTickCount = entity.tickCount;
 
-        if (sendPacketIfNecessary) {
-            boolean changed = oldGravityDirection != currGravityDirection ||
-                    Math.abs(oldGravityStrength - currGravityStrength) > 0.0001;
+        if (sendPacketIfNecessary && !entity.level().isClientSide()) {
+            boolean changed = oldGravityDirection != currGravityDirection
+                    || syncedGravityVector.distanceToSqr(currGravityVector) >= GRAVITY_VECTOR_SYNC_THRESHOLD_SQR
+                    || Math.abs(oldGravityStrength - currGravityStrength) > 0.0001;
             if (changed) {
-                sendSyncPacketToOtherPlayers();
+                needsSync = true;
             }
         }
     }
 
     @Override
     public void fromNbt(CompoundTag tag) {
+        Direction oldGravityDirection = currGravityDirection;
+        Vec3 oldGravityVector = currGravityVector;
         if (tag.contains("baseGravityDirection")) {
-            baseGravityDirection = Direction.byName(tag.getString("baseGravityDirection"));
+            Direction parsedBase = Direction.byName(tag.getString("baseGravityDirection"));
+            baseGravityDirection = parsedBase != null ? parsedBase : Direction.DOWN;
         }
         else {
             baseGravityDirection = Direction.DOWN;
         }
 
         if (tag.contains("baseGravityStrength")) {
-            baseGravityStrength = tag.getDouble("baseGravityStrength");
+            double parsedStrength = tag.getDouble("baseGravityStrength");
+            baseGravityStrength = Double.isFinite(parsedStrength) ? parsedStrength : 1.0;
         }
         else {
             baseGravityStrength = 1.0;
@@ -506,32 +608,67 @@ public class EntityGravityData implements IEntityGravityData {
         if (tag.contains("modifiers")) {
             ListTag list = tag.getList("modifiers", Tag.TAG_COMPOUND);
             for (Tag t : list) {
-                modifiers.add(GravityModifier.fromTag((CompoundTag) t));
+                try {
+                    modifiers.add(GravityModifier.fromTag((CompoundTag) t));
+                } catch (IllegalArgumentException ignored) {
+                }
             }
             modifiers.sort(Comparator.comparingInt(GravityModifier::priority).reversed());
         }
 
         // the current gravity is serialized to avoid unnecessary gravity rotation when entering world
-        // do not deserialize it when for client player when not initializing
+        // for the local player after initialization, recompute immediately from the synced modifiers
         if (!initialized || shouldAcceptServerSync()) {
             if (tag.contains("currentGravityDirection")) {
-                currGravityDirection = Direction.byName(tag.getString("currentGravityDirection"));
+                Direction parsedCurr = Direction.byName(tag.getString("currentGravityDirection"));
+                currGravityDirection = parsedCurr != null ? parsedCurr : Direction.DOWN;
             }
             else {
                 currGravityDirection = Direction.DOWN;
             }
 
             if (tag.contains("currentGravityStrength")) {
-                currGravityStrength = tag.getDouble("currentGravityStrength");
+                double parsedCurrStrength = tag.getDouble("currentGravityStrength");
+                currGravityStrength = Double.isFinite(parsedCurrStrength) ? parsedCurrStrength : 1.0;
             }
             else {
                 currGravityStrength = 1.0;
             }
+            if (tag.contains("currentGravityVectorX")
+                && tag.contains("currentGravityVectorY")
+                && tag.contains("currentGravityVectorZ")) {
+                Vec3 loadedVector = new Vec3(
+                    tag.getDouble("currentGravityVectorX"),
+                    tag.getDouble("currentGravityVectorY"),
+                    tag.getDouble("currentGravityVectorZ")
+                );
+                if (loadedVector.lengthSqr() > 1.0E-12) {
+                    currGravityVector = loadedVector.normalize();
+                } else {
+                    currGravityVector = Vec3.atLowerCornerOf(currGravityDirection.getNormal());
+                }
+            } else {
+                currGravityVector = Vec3.atLowerCornerOf(currGravityDirection.getNormal());
+            }
+            Optional<RotationParameters> rotOpt = GravityModifier.computeRotationParameters(modifiers);
+            currentRotationParameters = rotOpt.orElseGet(RotationParameters::getDefault);
+        } else {
+            recomputeGravity();
+        }
+
+        if (initialized && animation != null
+            && (currGravityDirection != oldGravityDirection
+                || currGravityVector.distanceToSqr(oldGravityVector) > 1.0E-8)) {
+            animation.setGravityVector(currGravityVector, currGravityDirection, entity.level().getGameTime() * 50);
         }
 
         if (!initialized) {
             prevGravityDirection = currGravityDirection;
+            prevGravityVector = currGravityVector;
             prevGravityStrength = currGravityStrength;
+            if (animation != null) {
+                animation.initializeGravityVector(currGravityVector, currGravityDirection);
+            }
             initialized = true;
             applyGravityDirectionChange(
                     prevGravityDirection, currGravityDirection, currentRotationParameters, true
@@ -543,6 +680,9 @@ public class EntityGravityData implements IEntityGravityData {
     public void toNbt(@NotNull CompoundTag tag) {
         tag.putString("baseGravityDirection", baseGravityDirection.getName());
         tag.putString("currentGravityDirection", currGravityDirection.getName());
+        tag.putDouble("currentGravityVectorX", currGravityVector.x);
+        tag.putDouble("currentGravityVectorY", currGravityVector.y);
+        tag.putDouble("currentGravityVectorZ", currGravityVector.z);
 
         tag.putDouble("baseGravityStrength", baseGravityStrength);
         tag.putDouble("currentGravityStrength", currGravityStrength);
@@ -560,6 +700,8 @@ public class EntityGravityData implements IEntityGravityData {
         CompoundTag tag = new CompoundTag();
         toNbt(tag);
         Services.PLATFORM.sendToTracking(new S2CEntityGravityPacket(entity,tag),entity,false);
+        syncedGravityVector = currGravityVector;
+        needsSync = false;
     }
 
     protected void postEvent() {

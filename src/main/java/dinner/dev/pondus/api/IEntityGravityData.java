@@ -2,6 +2,7 @@ package dinner.dev.pondus.api;
 
 import dinner.dev.pondus.RotationAnimation;
 import net.minecraft.core.Direction;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import org.jetbrains.annotations.NotNull;
@@ -20,6 +21,9 @@ public interface IEntityGravityData {
 
     // Current computed gravity
     Direction getCurrGravityDirection();
+    default Vec3 getCurrGravityVector() {
+        return Vec3.atLowerCornerOf(getCurrGravityDirection().getNormal());
+    }
     double getCurrGravityStrength();
 
     void setBaseGravityStrength(double strength);

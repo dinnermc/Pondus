@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(value = ScreenEffectRenderer.class)
 public class ScreenEffectRendererFabricMixin {
     @Inject(
-            method = "getOverlayBlock",
+            method = "getViewBlockingState",
             at = @At("HEAD"),
             cancellable = true
     )

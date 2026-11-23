@@ -50,8 +50,6 @@ public abstract class EntityRenderDispatcherMixin {
     private void inject_render_0(Entity entity, double x, double y, double z, float yaw, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumers, int light, CallbackInfo ci) {
         if (!(entity instanceof Projectile) && !(entity instanceof ExperienceOrb) && EntityTags.allowGravityTransformationInRendering(entity)) {
             Direction gravityDirection = PondusAPI.getGravityDirection(entity);
-            if (!this.shouldRenderShadow) return;
-            
             matrices.pushPose();
             RotationAnimation animation = PondusAPI.getRotationAnimation(entity);
             if (animation == null) {
@@ -72,7 +70,6 @@ public abstract class EntityRenderDispatcherMixin {
     )
     private void inject_render_1(Entity entity, double x, double y, double z, float yaw, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumers, int light, CallbackInfo ci) {
         if (!(entity instanceof Projectile) && !(entity instanceof ExperienceOrb) && EntityTags.allowGravityTransformationInRendering(entity)) {
-            if (!this.shouldRenderShadow) return;
             matrices.popPose();
         }
     }
@@ -89,10 +86,20 @@ public abstract class EntityRenderDispatcherMixin {
     private void inject_render_2(Entity entity, double x, double y, double z, float yaw, float tickDelta, PoseStack matrices, MultiBufferSource vertexConsumers, int light, CallbackInfo ci) {
         if (!(entity instanceof Projectile) && !(entity instanceof ExperienceOrb) && EntityTags.allowGravityTransformationInRendering(entity)) {
             Direction gravityDirection = PondusAPI.getGravityDirection(entity);
-            if (gravityDirection == Direction.DOWN) return;
             if (!this.shouldRenderShadow) return;
-            
-            matrices.mulPose(RotationUtil.getCameraRotationQuaternion(gravityDirection));
+            RotationAnimation animation = PondusAPI.getRotationAnimation(entity);
+            if (animation == null) {
+                return;
+            }
+            Vec3 gravityVector = PondusAPI.getGravityVector(entity);
+            long timeMs = entity.level().getGameTime() * 50 + (long) (tickDelta * 50);
+            if (gravityVector.distanceToSqr(new Vec3(0, -1, 0)) < 1.0E-8
+                && !animation.isRotationActive(timeMs)) {
+                return;
+            }
+            matrices.mulPose(
+                new Quaternionf(animation.getCurrentGravityRotation(gravityDirection, timeMs)).conjugate()
+            );
         }
     }
     

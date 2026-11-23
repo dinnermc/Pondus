@@ -13,11 +13,14 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
@@ -200,78 +203,80 @@ public class GravityCommand {
 
         // Zone subcommands
         builder.then(Commands.literal("zone")
-            .then(Commands.literal("create")
-                .then(Commands.argument("id", StringArgumentType.word())
-                    .then(Commands.argument("x1", IntegerArgumentType.integer())
-                        .then(Commands.argument("y1", IntegerArgumentType.integer())
-                            .then(Commands.argument("z1", IntegerArgumentType.integer())
-                                .then(Commands.argument("x2", IntegerArgumentType.integer())
-                                    .then(Commands.argument("y2", IntegerArgumentType.integer())
-                                        .then(Commands.argument("z2", IntegerArgumentType.integer())
-                                            .then(Commands.argument("direction", StringArgumentType.word())
-                                                .then(Commands.argument("strength", DoubleArgumentType.doubleArg(0, 20))
-                                                    .executes(ctx -> {
-                                                        String id = StringArgumentType.getString(ctx, "id");
-                                                        int x1 = IntegerArgumentType.getInteger(ctx, "x1");
-                                                        int y1 = IntegerArgumentType.getInteger(ctx, "y1");
-                                                        int z1 = IntegerArgumentType.getInteger(ctx, "z1");
-                                                        int x2 = IntegerArgumentType.getInteger(ctx, "x2");
-                                                        int y2 = IntegerArgumentType.getInteger(ctx, "y2");
-                                                        int z2 = IntegerArgumentType.getInteger(ctx, "z2");
-                                                        BlockPos pos1 = new BlockPos(x1, y1, z1);
-                                                        BlockPos pos2 = new BlockPos(x2, y2, z2);
-                                                        String dirStr = StringArgumentType.getString(ctx, "direction").toUpperCase();
-                                                        Direction dir;
-                                                        switch (dirStr) {
-                                                            case "DOWN": dir = Direction.DOWN; break;
-                                                            case "UP": dir = Direction.UP; break;
-                                                            case "NORTH": dir = Direction.NORTH; break;
-                                                            case "SOUTH": dir = Direction.SOUTH; break;
-                                                            case "EAST": dir = Direction.EAST; break;
-                                                            case "WEST": dir = Direction.WEST; break;
-                                                            default:
-                                                                throw new IllegalArgumentException("Invalid direction: " + dirStr);
-                                                        }
-                                                        double strength = DoubleArgumentType.getDouble(ctx, "strength");
-                                                        if (strength <= 0) strength = 1.0;
-                                                        Zone existing = ZoneManager.getInstance().getZone(id);
-                                                        if (existing != null) {
-                                                            ctx.getSource().sendFailure(Component.literal("A zone with ID " + id + " already exists."));
-                                                            return 0;
-                                                        }
-                                                        Zone zone = new Zone(id, pos1, pos2, dir, strength);
-                                                        ZoneManager.getInstance().addZone(zone);
-                                                        ctx.getSource().sendSuccess(() -> Component.literal("Zone created: " + id), true);
-                                                        return 1;
-                                                    })
-                                                )
-                                            )
-                                        )
-                                    )
-                                )
-                            )
-                        )
-                    )
-                )
-            )
+            .then(zoneDefinitionCommand("create", false))
+            .then(zoneDefinitionCommand("edit", true))
             .then(Commands.literal("remove")
                 .then(Commands.argument("id", StringArgumentType.word())
+                    .suggests((ctx, suggestionsBuilder) -> SharedSuggestionProvider.suggest(
+                        ZoneManager.getInstance().getZones(ctx.getSource().getLevel()).keySet(), suggestionsBuilder
+                    ))
                     .executes(ctx -> {
                         String id = StringArgumentType.getString(ctx, "id");
-                        Zone zone = ZoneManager.getInstance().getZone(id);
+                        Zone zone = ZoneManager.getInstance().getZone(id, ctx.getSource().getLevel());
                         if (zone == null) {
                             ctx.getSource().sendFailure(Component.literal("No zone with ID " + id + " found."));
                             return 0;
                         }
-                        ZoneManager.getInstance().removeZone(id);
+                        ZoneManager.getInstance().removeZone(id, ctx.getSource().getLevel());
                         ctx.getSource().sendSuccess(() -> Component.literal("Zone removed: " + id), true);
                         return 1;
                     })
                 )
             )
+            .then(Commands.literal("enable")
+                .then(Commands.argument("id", StringArgumentType.word())
+                    .suggests((ctx, suggestionsBuilder) -> SharedSuggestionProvider.suggest(
+                        ZoneManager.getInstance().getZones(ctx.getSource().getLevel()).keySet(), suggestionsBuilder
+                    ))
+                    .executes(ctx -> setZoneEnabled(ctx, true))
+                )
+            )
+            .then(Commands.literal("disable")
+                .then(Commands.argument("id", StringArgumentType.word())
+                    .suggests((ctx, suggestionsBuilder) -> SharedSuggestionProvider.suggest(
+                        ZoneManager.getInstance().getZones(ctx.getSource().getLevel()).keySet(), suggestionsBuilder
+                    ))
+                    .executes(ctx -> setZoneEnabled(ctx, false))
+                )
+            )
+            .then(Commands.literal("status")
+                .executes(ctx -> {
+                    Entity entity = ctx.getSource().getEntityOrException();
+                    ZoneManager zoneManager = ZoneManager.getInstance();
+                    StringBuilder status = new StringBuilder("Gravedad: ")
+                        .append(PondusAPI.getGravityDirection(entity).getName())
+                        .append(" (fuerza ")
+                        .append(PondusAPI.getGravityStrength(entity))
+                        .append("). Zonas: ");
+                    boolean foundZone = false;
+                    for (Zone zone : zoneManager.getZones(entity.level()).values()) {
+                        double influence = zoneManager.getZoneInfluence(entity, zone);
+                        if (influence > 0) {
+                            if (foundZone) {
+                                status.append(", ");
+                            }
+                            status.append(zone.getId())
+                                .append(zone.contains(entity) ? " (" : " (transición; ")
+                                .append(zone.hasCenterGravity()
+                                    ? "center"
+                                    : zone.getDirectionAt(entity.getBoundingBox().getCenter(),
+                                        PondusAPI.getBaseGravityDirection(entity)).getName())
+                                .append(" x")
+                                .append(zone.getStrength())
+                                .append(")");
+                            foundZone = true;
+                        }
+                    }
+                    if (!foundZone) {
+                        status.append("ninguna");
+                    }
+                    ctx.getSource().sendSuccess(() -> Component.literal(status.toString()), false);
+                    return 1;
+                })
+            )
             .then(Commands.literal("list")
                 .executes(ctx -> {
-                    Map<String, Zone> zones = ZoneManager.getInstance().getZones();
+                    Map<String, Zone> zones = ZoneManager.getInstance().getZones(ctx.getSource().getLevel());
                     if (zones.isEmpty()) {
                         ctx.getSource().sendSuccess(() -> Component.literal("No zones defined."), true);
                     } else {
@@ -280,12 +285,20 @@ public class GravityCommand {
                             Zone zone = e.getValue();
                             sb.append("[")
                               .append(zone.getId())
-                              .append("] ")
-                              .append(zone.getPos1())
-                              .append(" to ")
-                              .append(zone.getPos2())
+                              .append("] shape=")
+                              .append(zone.getShape().name().toLowerCase())
+                              .append(zone.getShape() == Zone.Shape.BOX
+                                  ? " " + zone.getPos1() + " to " + zone.getPos2()
+                                  : " center=" + zone.getCenter()
+                                      + (zone.getShape() == Zone.Shape.SPHERE
+                                          ? " radius=" + zone.getRadius()
+                                          : " axis=" + zone.getAxis().getName()
+                                              + " radius=" + zone.getRadius()
+                                              + " height=" + zone.getHalfHeight() * 2))
+                              .append(" transition=")
+                              .append(zone.getTransitionDistance())
                               .append(" dir=")
-                              .append(zone.getDirection())
+                              .append(zone.hasCenterGravity() ? "center" : zone.getDirection())
                               .append(" strength=")
                               .append(zone.getStrength())
                               .append(" ");
@@ -344,6 +357,201 @@ public class GravityCommand {
         dispatcher.register(builder);
     }
 
+    private static LiteralArgumentBuilder<CommandSourceStack> zoneDefinitionCommand(String name, boolean edit) {
+        RequiredArgumentBuilder<CommandSourceStack, String> idArgument =
+            Commands.argument("id", StringArgumentType.word());
+        if (edit) {
+            idArgument.suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                ZoneManager.getInstance().getZones(ctx.getSource().getLevel()).keySet(), builder
+            ));
+        }
+
+        idArgument
+            .then(Commands.literal("box")
+                .then(Commands.argument("pos1", BlockPosArgument.blockPos())
+                    .then(Commands.argument("pos2", BlockPosArgument.blockPos())
+                        .then(zoneProperties(ctx -> Zone.box(
+                            zoneId(ctx),
+                            BlockPosArgument.getBlockPos(ctx, "pos1"),
+                            BlockPosArgument.getBlockPos(ctx, "pos2"),
+                            zoneDirection(ctx),
+                            zoneUsesCenterGravity(ctx),
+                            zoneStrength(ctx),
+                            DoubleArgumentType.getDouble(ctx, "transition")
+                        ), edit))
+                    )
+                )
+            )
+            .then(Commands.literal("sphere")
+                .then(Commands.argument("center", BlockPosArgument.blockPos())
+                    .then(Commands.argument("radius", DoubleArgumentType.doubleArg(0.000001, 30000000))
+                        .then(zoneProperties(ctx -> Zone.sphere(
+                            zoneId(ctx),
+                            BlockPosArgument.getBlockPos(ctx, "center"),
+                            DoubleArgumentType.getDouble(ctx, "radius"),
+                            zoneDirection(ctx),
+                            zoneUsesCenterGravity(ctx),
+                            zoneStrength(ctx),
+                            DoubleArgumentType.getDouble(ctx, "transition")
+                        ), edit))
+                    )
+                )
+            )
+            .then(Commands.literal("cylinder")
+                .then(Commands.argument("center", BlockPosArgument.blockPos())
+                    .then(Commands.argument("axis", StringArgumentType.word())
+                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                            List.of("x", "y", "z"), builder
+                        ))
+                        .then(Commands.argument("radius", DoubleArgumentType.doubleArg(0.000001, 30000000))
+                            .then(Commands.argument("height", DoubleArgumentType.doubleArg(0.000001, 30000000))
+                                .then(zoneProperties(ctx -> Zone.cylinder(
+                                    zoneId(ctx),
+                                    BlockPosArgument.getBlockPos(ctx, "center"),
+                                    zoneAxis(ctx),
+                                    DoubleArgumentType.getDouble(ctx, "radius"),
+                                    DoubleArgumentType.getDouble(ctx, "height"),
+                                    zoneDirection(ctx),
+                                    zoneUsesCenterGravity(ctx),
+                                    zoneStrength(ctx),
+                                    DoubleArgumentType.getDouble(ctx, "transition")
+                                ), edit))
+                            )
+                        )
+                    )
+                )
+            )
+            .then(Commands.argument("pos1", BlockPosArgument.blockPos())
+                .then(Commands.argument("pos2", BlockPosArgument.blockPos())
+                    .then(zoneProperties(ctx -> Zone.box(
+                        zoneId(ctx),
+                        BlockPosArgument.getBlockPos(ctx, "pos1"),
+                        BlockPosArgument.getBlockPos(ctx, "pos2"),
+                        zoneDirection(ctx),
+                        zoneUsesCenterGravity(ctx),
+                        zoneStrength(ctx),
+                        1.8
+                    ), edit, false))
+                )
+            );
+
+        return Commands.literal(name).then(idArgument);
+    }
+
+    @FunctionalInterface
+    private interface ZoneFactory {
+        Zone create(CommandContext<CommandSourceStack> context);
+    }
+
+    private static RequiredArgumentBuilder<CommandSourceStack, String> zoneProperties(
+        ZoneFactory factory,
+        boolean edit
+    ) {
+        return zoneProperties(factory, edit, true);
+    }
+
+    private static RequiredArgumentBuilder<CommandSourceStack, String> zoneProperties(
+        ZoneFactory factory,
+        boolean edit,
+        boolean includeTransition
+    ) {
+        var strength = Commands.argument("strength", DoubleArgumentType.doubleArg(0, 20));
+        if (includeTransition) {
+            strength.then(Commands.argument("transition", DoubleArgumentType.doubleArg(0, 128))
+                .executes(ctx -> saveZone(ctx, edit, factory)));
+        } else {
+            strength.executes(ctx -> saveZone(ctx, edit, factory));
+        }
+        return Commands.argument("direction", StringArgumentType.word())
+            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                List.of("down", "up", "north", "south", "west", "east", "center"), builder
+            ))
+            .then(strength);
+    }
+
+    private static boolean zoneUsesCenterGravity(CommandContext<CommandSourceStack> context) {
+        return StringArgumentType.getString(context, "direction").equalsIgnoreCase("center");
+    }
+
+    private static Direction zoneDirection(CommandContext<CommandSourceStack> context) {
+        if (zoneUsesCenterGravity(context)) {
+            return Direction.DOWN;
+        }
+        String direction = StringArgumentType.getString(context, "direction").toLowerCase();
+        return switch (direction) {
+            case "up", "u" -> Direction.UP;
+            case "down", "d" -> Direction.DOWN;
+            case "north", "n" -> Direction.NORTH;
+            case "south", "s" -> Direction.SOUTH;
+            case "east", "e" -> Direction.EAST;
+            case "west", "w" -> Direction.WEST;
+            default -> Direction.DOWN;
+        };
+    }
+
+    private static boolean isZoneDirection(String direction) {
+        return switch (direction.toLowerCase()) {
+            case "center", "up", "u", "down", "d", "north", "n", "south", "s", "east", "e", "west", "w" -> true;
+            default -> false;
+        };
+    }
+
+    private static int saveZone(CommandContext<CommandSourceStack> context, boolean edit, ZoneFactory factory) {
+        String id = zoneId(context);
+        if (!isZoneDirection(StringArgumentType.getString(context, "direction"))) {
+            context.getSource().sendFailure(Component.literal("Direction must be up, down, north, south, east, west, or center."));
+            return 0;
+        }
+        ZoneManager manager = ZoneManager.getInstance();
+        Zone existing = manager.getZone(id, context.getSource().getLevel());
+        if (edit && existing == null) {
+            context.getSource().sendFailure(Component.literal("No zone with ID " + id + " found."));
+            return 0;
+        }
+        if (!edit && existing != null) {
+            context.getSource().sendFailure(Component.literal("A zone with ID " + id + " already exists."));
+            return 0;
+        }
+
+        Zone zone = factory.create(context);
+        manager.addZone(zone, context.getSource().getLevel());
+        context.getSource().sendSuccess(
+            () -> Component.literal("Zone " + (edit ? "updated: " : "created: ") + id),
+            true
+        );
+        return 1;
+    }
+
+    private static String zoneId(CommandContext<CommandSourceStack> context) {
+        return StringArgumentType.getString(context, "id");
+    }
+
+    private static int setZoneEnabled(CommandContext<CommandSourceStack> ctx, boolean enabled) {
+        String id = StringArgumentType.getString(ctx, "id");
+        if (!ZoneManager.getInstance().setZoneEnabled(id, enabled, ctx.getSource().getLevel())) {
+            ctx.getSource().sendFailure(Component.literal("No zone with ID " + id + " found."));
+            return 0;
+        }
+        ctx.getSource().sendSuccess(
+            () -> Component.literal("Zone " + (enabled ? "enabled: " : "disabled: ") + id),
+            true
+        );
+        return 1;
+    }
+
+    private static double zoneStrength(CommandContext<CommandSourceStack> context) {
+        return Math.max(0.0, DoubleArgumentType.getDouble(context, "strength"));
+    }
+
+    private static Direction.Axis zoneAxis(CommandContext<CommandSourceStack> context) {
+        return switch (StringArgumentType.getString(context, "axis").toLowerCase()) {
+            case "x" -> Direction.Axis.X;
+            case "y" -> Direction.Axis.Y;
+            case "z" -> Direction.Axis.Z;
+            default -> throw new IllegalArgumentException("Cylinder axis must be x, y, or z.");
+        };
+    }
+
     private static int executeSetBaseStrength(Collection<? extends Entity> entities, double strength) {
         for (Entity entity : entities) {
             PondusAPI.setBaseGravityStrength(entity, strength);
@@ -392,8 +600,10 @@ public class GravityCommand {
                     combinedRelativeDirection = Direction.from2DDataValue(1 + Direction.fromYRot(entity.getYRot()).get2DDataValue());
                     break;
                 case "FORWARD":
+                    combinedRelativeDirection = Direction.from2DDataValue(Direction.fromYRot(entity.getYRot()).get2DDataValue());
+                    break;
                 case "BACKWARD":
-                    combinedRelativeDirection = Direction.from2DDataValue(0 + Direction.fromYRot(entity.getYRot()).get2DDataValue());
+                    combinedRelativeDirection = Direction.from2DDataValue(2 + Direction.fromYRot(entity.getYRot()).get2DDataValue());
                     break;
                 default:
                     throw new IllegalArgumentException("Invalid relative direction: " + relStr);
@@ -433,7 +643,6 @@ public class GravityCommand {
 
         int count = 0;
         for (Entity entity : entities) {
-            UUID modId = UUID.randomUUID();
             GravityModifier modifier = new GravityModifier(
                 UUID.randomUUID(),
                 sourceId,
@@ -502,10 +711,10 @@ public class GravityCommand {
                     "commands.gravity.modifier.none", entity.getDisplayName()
                 ), false);
             } else {
-                StringBuilder sb = new StringBuilder("Modifiers for ").append(entity.getDisplayName()).append(":\n");
+                StringBuilder sb = new StringBuilder("Modifiers for ").append(entity.getDisplayName().getString()).append(":\n");
                 for (GravityModifier m : modifiers) {
                     sb.append("  [")
-                      .append(m.id().toString().substring(0, 8))
+                      .append(m.id())
                       .append("] source=").append(m.sourceId())
                       .append(" dir=").append(m.direction().getName())
                       .append(" strength=").append(m.strengthMultiplier())

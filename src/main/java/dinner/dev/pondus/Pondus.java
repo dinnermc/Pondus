@@ -60,6 +60,7 @@ public class Pondus {
             return InteractionResult.PASS;
         });
         Pondus.config = Pondus.configHolder.getConfig();
+        RotationParameters.updateDefault();
     }
 
     public static void register() {

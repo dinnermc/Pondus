@@ -46,6 +46,7 @@ public abstract class CameraMixin {
             boolean thirdPerson, boolean inverseView, float tickDelta
     ) {
         Direction gravityDirection = PondusAPI.getGravityDirection(focusedEntity);
+        Vec3 gravityVector = PondusAPI.getGravityVector(focusedEntity);
         RotationAnimation animation = PondusAPI.getRotationAnimation(focusedEntity);
 
         if (animation == null) {
@@ -57,8 +58,8 @@ public abstract class CameraMixin {
         // while tick freeze is active
         float partialTick = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);//getTickDelta();
         long timeMs = focusedEntity.level().getGameTime() * 50 + (long) (partialTick * 50);
-        animation.update(timeMs);
-        if (gravityDirection == Direction.DOWN && !animation.isInAnimation()) {
+        if (gravityVector.distanceToSqr(new Vec3(0, -1, 0)) < 1.0E-8
+            && !animation.isRotationActive(timeMs)) {
             original.call(this, x, y, z);
             return;
         }

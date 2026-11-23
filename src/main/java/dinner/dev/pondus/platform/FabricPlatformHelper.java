@@ -1,22 +1,29 @@
 package dinner.dev.pondus.platform;
 
-import dinner.dev.pondus.CommonEvents;
+import dinner.dev.pondus.api.GravityUpdateEvent;
 import dinner.dev.pondus.attachments.CommonDataAttachment;
 import dinner.dev.pondus.network.C2SModPacket;
+import dinner.dev.pondus.network.PacketHandlerFabric;
 import dinner.dev.pondus.network.S2CModPacket;
 import dinner.dev.pondus.platform.services.IPlatformHelper;
 import dinner.dev.pondus.util.EntityGravityData;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentTarget;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 public class FabricPlatformHelper implements IPlatformHelper {
 
@@ -27,50 +34,53 @@ public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public boolean isModLoaded(String modId) {
-        return net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded(modId);
+        return FabricLoader.getInstance().isModLoaded(modId);
     }
 
     @Override
     public boolean isDevelopmentEnvironment() {
-        return net.fabricmc.loader.api.FabricLoader.getInstance().isDevelopmentEnvironment();
+        return FabricLoader.getInstance().isDevelopmentEnvironment();
     }
 
     @Override
     public boolean isClient() {
-        return net.fabricmc.api.EnvType.CLIENT == net.fabricmc.loader.api.FabricLoader.getInstance().getEnvironmentType();
+        return EnvType.CLIENT == FabricLoader.getInstance().getEnvironmentType();
     }
 
     @Override
     public <MSG extends S2CModPacket> void registerClientPlayPacket(CustomPacketPayload.Type<MSG> type, StreamCodec<RegistryFriendlyByteBuf, MSG> streamCodec) {
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.registerGlobalReceiver(type, (packet, context) -> {
-            packet.handleClient();
-        });
+        // Registered centrally in PacketHandlerFabric.register() / registerClientPackets().
     }
 
     @Override
     public <MSG extends C2SModPacket> void registerServerPlayPacket(CustomPacketPayload.Type<MSG> type, StreamCodec<RegistryFriendlyByteBuf, MSG> streamCodec) {
-        // For client-to-server packets, we register on the client side
-        // This is typically done in the client entry point
+        // Registered centrally in PacketHandlerFabric.register().
     }
 
     @Override
     public void sendToClient(S2CModPacket msg, ServerPlayer player) {
-        ServerPlayNetworking.send(player, msg);
+        PacketHandlerFabric.sendToClient(msg, player);
     }
 
     @Override
     public void sendToServer(C2SModPacket msg) {
-        // Client side only - send to server
-        net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(msg);
+        PacketHandlerFabric.sendToServer(msg);
     }
 
     @Override
     public void sendToTracking(S2CModPacket msg, Entity entity, boolean includeSelf) {
-        java.util.Collection<ServerPlayer> players = new java.util.LinkedHashSet<>(PlayerLookup.tracking(entity));
+        Set<ServerPlayer> players = new LinkedHashSet<>(PlayerLookup.tracking(entity));
         if (includeSelf && entity instanceof ServerPlayer self) {
             players.add(self);
         }
         for (ServerPlayer player : players) {
+            ServerPlayNetworking.send(player, msg);
+        }
+    }
+
+    @Override
+    public void sendToLevel(S2CModPacket msg, ServerLevel level) {
+        for (ServerPlayer player : PlayerLookup.world(level)) {
             ServerPlayNetworking.send(player, msg);
         }
     }
@@ -114,6 +124,6 @@ public class FabricPlatformHelper implements IPlatformHelper {
 
     @Override
     public void postEvent(Entity entity, EntityGravityData entityGravityData) {
-        CommonEvents.handleGravity(entity, entityGravityData);
+        GravityUpdateEvent.EVENT.invoker().onGravityUpdate(entity, entityGravityData);
     }
 }

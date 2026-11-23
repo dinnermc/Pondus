@@ -110,6 +110,11 @@
 
   "text.autoconfig.pondus.option.autoJumpOnGravityPlateInnerCorner": "Auto Jump On Gravity Plate Inner Corner",
 
-  "text.autoconfig.pondus.option.adjustPositionAfterChangingGravity": "Adjust Position After Changing Gravity"
+  "text.autoconfig.pondus.option.adjustPositionAfterChangingGravity": "Adjust Position After Changing Gravity",
+
+  "key.pondus.toggle_zone_visualization": "Toggle Gravity Zone Visualization",
+  "key.categories.pondus": "Pondus",
+  "message.pondus.zone_visualization.enabled": "Gravity zone visualization enabled",
+  "message.pondus.zone_visualization.disabled": "Gravity zone visualization disabled"
 
 }
