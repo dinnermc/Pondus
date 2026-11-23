@@ -8,7 +8,7 @@ Pondus ships **zero gameplay bloat** (no custom blocks or items of its own). It 
 
 1. **[Getting Started](Getting-Started.md)** — Installing Pondus as a Gradle dependency (NeoForge & Fabric) and requirements.
 2. **[API Reference](API-Reference.md)** — Complete guide to `PondusAPI`, `ItemGravityRule`, timed modifiers, `GravityModifier`, `GravityField`, `GravitySource`, `GravityUpdateEvent`, and coordinate transforms.
-3. **[Gravity Zones](Gravity-Zones.md)** — Persistent per-dimension box/sphere/cylinder zones, commands, client wireframe visualizer (`G`), and programmatic Zone API.
+3. **[Gravity Zones](Gravity-Zones.md)** — Persistent per-dimension box/sphere/cylinder zones, commands, client wireframe visualizer (`F9`), and programmatic Zone API.
 4. **[Planetary & Zero-G Gravity Guide](Planetary-Gravity.md)** — Building zero-G space dimensions, orbiting Newtonian `1/r²` planets and moons, Lagrange points, and artificial ship gravity.
 
 ## Core Architecture at a Glance

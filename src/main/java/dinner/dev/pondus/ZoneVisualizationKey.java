@@ -18,7 +18,7 @@ public final class ZoneVisualizationKey {
     private static final KeyMapping TOGGLE = new KeyMapping(
         "key.pondus.toggle_zone_visualization",
         InputConstants.Type.KEYSYM,
-        GLFW.GLFW_KEY_G,
+        GLFW.GLFW_KEY_F9,
         "key.categories.pondus"
     );
     private static ResourceKey<Level> lastRequestedDimension;

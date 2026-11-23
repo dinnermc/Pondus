@@ -54,4 +54,4 @@ Once loaded in a dev world, run:
 /gravity zone create planet sphere ~ ~10 ~ 8 center 1 4
 ```
 
-Press **`G`** to toggle the wireframe & vector arrow visualizer, then walk or fly around the sphere.
+Press **`F9`** to toggle the wireframe & vector arrow visualizer, then walk or fly around the sphere.

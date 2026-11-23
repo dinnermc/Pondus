@@ -25,7 +25,7 @@
 
 ## Features
 - Full 3D gravity control (cardinal + continuous world-space vectors with smooth frame-rate-independent camera damping)
-- Persistent per-dimension gravity zones (`box`, `sphere`, `cylinder`, `center` radial gravity, smooth transitions, and `G` wireframe visualizer)
+- Persistent per-dimension gravity zones (`box`, `sphere`, `cylinder`, `center` radial gravity, smooth transitions, and `F9` wireframe visualizer)
 - Planetary &amp; zero-G space physics: zero-G space dimensions + absolute-strength local fields, Newtonian `1/r²` helper, and multi-body Lagrange point blending
 - Declarative addon API for custom items/armor/charms (`ItemGravityRule`), timed modifiers, dimension-scoped `GravitySource`s, and `GravityUpdateEvent`
 - Pure API: zero gameplay bloat (no blocks or items added by Pondus itself)
@@ -47,7 +47,7 @@ Create and edit box, sphere, or cylinder zones. Position arguments use the same 
 For example: `/gravity zone create tower cylinder ~ ~ ~ y 6 24 up 1 3`. The cylinder axis is `x`, `y`, or `z`; direction accepts the six cardinal directions or `center`. `center` defines a continuous gravity vector toward the geometric center of the box, sphere, or cylinder, with a smooth core fade and angular hysteresis so walking across sphere faces stays stable. Existing zone IDs autocomplete for `edit`, `enable`, `disable`, and `remove`. `transition` is the smooth falloff distance in blocks outside the core shape; use `0` for a hard boundary. The original `/gravity zone create <id> <pos1> <pos2> <direction> <strength>` box syntax remains available with a default transition of 1.8 blocks.
 
 Zones are saved per dimension with the world and persist across restarts and chunk reloads.
-Overlapping zones normalize and blend their gravity vectors smoothly with the entity's base gravity. Press `G` to toggle the client-side gravity-zone visualizer (the key can be rebound in Controls). It draws each zone's core and transition boundary plus direction arrows for the current dimension.
+Overlapping zones normalize and blend their gravity vectors smoothly with the entity's base gravity. Press `F9` to toggle the client-side gravity-zone visualizer (the key can be rebound in Controls). It draws each zone's core and transition boundary plus direction arrows for the current dimension.
 
 ## Addon API
 Pondus is designed as a library that other mods can depend on to build custom gravity items, armor, blocks, machines, spells, and dimensions. Everything is accessible through `PondusAPI`:
