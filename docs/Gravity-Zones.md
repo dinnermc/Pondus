@@ -53,7 +53,7 @@ import net.minecraft.world.phys.Vec3;
 
 // Create a spherical planet zone (supports BlockPos or exact Vec3 center)
 Zone planet = Zone.sphere(
-    "mymod:timber_hearth",
+    "mymod:home_planet",
     new Vec3(100.5, 120.0, -40.5),
     18.0,
     Direction.DOWN,
@@ -63,6 +63,6 @@ Zone planet = Zone.sphere(
 );
 
 PondusAPI.addZone(serverLevel, planet);
-PondusAPI.setZoneEnabled(serverLevel, "mymod:timber_hearth", false);
-PondusAPI.removeZone(serverLevel, "mymod:timber_hearth");
+PondusAPI.setZoneEnabled(serverLevel, "mymod:home_planet", false);
+PondusAPI.removeZone(serverLevel, "mymod:home_planet");
 ```

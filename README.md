@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/badge/License-MIT-blue" alt="License"/>
   </p>
 
-  <p>Lightweight, bloat-free 3D custom gravity API for Minecraft (NeoForge &amp; Fabric). Build custom gravity items, armor, spells, zones, zero-G space dimensions, and Outer Wilds-style planetary systems.</p>
+  <p>Lightweight, bloat-free 3D custom gravity API for Minecraft (NeoForge &amp; Fabric). Build custom gravity items, armor, spells, zones, zero-G space dimensions, and planetary gravity systems.</p>
 </div>
 
 ## Documentation / Wiki
@@ -21,12 +21,12 @@
 * [Getting Started (NeoForge &amp; Fabric)](docs/Getting-Started.md)
 * [API Reference](docs/API-Reference.md)
 * [Gravity Zones &amp; Visualizer](docs/Gravity-Zones.md)
-* [Outer Wilds &amp; Planetary Gravity Guide](docs/Outer-Wilds-Guide.md)
+* [Planetary &amp; Zero-G Gravity Guide](docs/Planetary-Gravity.md)
 
 ## Features
 - Full 3D gravity control (cardinal + continuous world-space vectors with smooth frame-rate-independent camera damping)
 - Persistent per-dimension gravity zones (`box`, `sphere`, `cylinder`, `center` radial gravity, smooth transitions, and `G` wireframe visualizer)
-- Outer Wilds-ready planetary physics: zero-G space dimensions + absolute-strength local fields, Newtonian `1/r²` helper, and multi-body Lagrange point blending
+- Planetary &amp; zero-G space physics: zero-G space dimensions + absolute-strength local fields, Newtonian `1/r²` helper, and multi-body Lagrange point blending
 - Declarative addon API for custom items/armor/charms (`ItemGravityRule`), timed modifiers, dimension-scoped `GravitySource`s, and `GravityUpdateEvent`
 - Pure API: zero gameplay bloat (no blocks or items added by Pondus itself)
 
@@ -217,7 +217,7 @@ PondusAPI.registerLevelGravitySource(serverLevel, new UpdraftSource(sourceId, an
 PondusAPI.unregisterLevelGravitySource(serverLevel.dimension(), sourceId);
 ```
 
-`GravityFieldShapes` provides `boxInfluence`, `sphereInfluence`, `cylinderInfluence`, `centerVector`, `coreScale`, and `inverseSquareStrength`. Use `GravityField.strengthOnly(multiplier)` for fields that only scale gravity strength without changing direction, or `GravityField.planetary(vector, strength)` for Outer Wilds-style planets and moons in zero-G space dimensions (`PondusAPI.setDimensionGravityStrength(spaceLevel, 0.0)`):
+`GravityFieldShapes` provides `boxInfluence`, `sphereInfluence`, `cylinderInfluence`, `centerVector`, `coreScale`, and `inverseSquareStrength`. Use `GravityField.strengthOnly(multiplier)` for fields that only scale gravity strength without changing direction, or `GravityField.planetary(vector, strength)` for planets and moons in zero-G space dimensions (`PondusAPI.setDimensionGravityStrength(spaceLevel, 0.0)`):
 
 ```java
 // Example: Newtonian planet / moon in a zero-G space dimension
